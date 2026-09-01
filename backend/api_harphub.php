@@ -71,15 +71,12 @@ if ($_SERVER["REQUEST_METHOD"] === "OPTIONS") {
 require_once 'db_config.php';
 
 try {
-    // Connect to server without specifying database first
-    $pdo = new PDO("mysql:host=$host;charset=utf8mb4", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // Create database if it doesn't exist
-    $pdo->exec("CREATE DATABASE IF NOT EXISTS `$db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    
-    // Connect to the specific database
-    $pdo->exec("USE `$db`");
+    // Connect directly to the specific database
+    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+    ]);
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS lessons (
         id INT AUTO_INCREMENT PRIMARY KEY,
