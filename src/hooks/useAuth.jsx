@@ -33,13 +33,13 @@ export function AuthProvider({ children }) {
                 };
                 setUser(userObj);
                 localStorage.setItem('harphub_user', JSON.stringify(userObj));
-            } else if (result.error) {
-                alert(result.error);
+            } else if (result.error || result.details) {
+                alert(result.details || result.error);
             }
             return result;
         } catch (err) {
             console.error("Auth error", err);
-            alert("Error de conexión con el servidor.");
+            alert("Error de conexión con el servidor: " + (err.message || err));
         } finally {
             setLoading(false);
         }

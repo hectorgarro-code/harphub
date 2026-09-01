@@ -22,5 +22,5 @@ if ($is_local) {
     $host = getenv('DB_HOST') ?: 'localhost';
     $db   = getenv('DB_NAME') ?: 'u803496046_harphub';
     $user = getenv('DB_USER') ?: 'u803496046_harphub';
-    $pass = getenv('DB_PASS') ?: '';
+    $pass = getenv('DB_PASS') ?: 'har662026@Adbc';
 }

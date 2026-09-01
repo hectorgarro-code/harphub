@@ -251,7 +251,7 @@ const LessonViewer = ({
 
         try {
             setIsSaving(true);
-            const res = await fetch('backend/api_harphub.php', {
+            const res = await fetch('/backend/api_harphub.php', {
                 method: 'POST',
                 body: formData
             });

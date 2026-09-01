@@ -1,6 +1,6 @@
 const API_URL = import.meta.env.MODE === 'development'
     ? 'http://localhost/harphub/backend/api_harphub.php'
-    : './backend/api_harphub.php';
+    : '/backend/api_harphub.php';
 
 const api = {
     async request(action, method = 'GET', data = null) {
@@ -26,8 +26,14 @@ const api = {
 
         try {
             const response = await fetch(url, options);
-            if (!response.ok) throw new Error('Network response was not ok');
-            return await response.json();
+            const resData = await response.json().catch(() => null);
+            if (!response.ok) {
+                if (resData && (resData.error || resData.details)) {
+                    return resData;
+                }
+                throw new Error('Network response was not ok');
+            }
+            return resData;
         } catch (error) {
             console.error('API Request Error:', error);
             throw error;

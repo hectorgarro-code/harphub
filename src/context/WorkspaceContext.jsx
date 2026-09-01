@@ -71,7 +71,7 @@ export const WorkspaceProvider = ({ children, lessonId, userId, initialData, les
         if (!userId || !lessonId) return;
         setIsSaving(true);
         try {
-            await fetch('/harphub/backend/api_harphub.php?action=save_workspace_state', {
+            await fetch('/backend/api_harphub.php?action=save_workspace_state', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -91,7 +91,7 @@ export const WorkspaceProvider = ({ children, lessonId, userId, initialData, les
     const addNote = async (content, metadata = {}) => {
         if (!workspaceId) return;
         try {
-            const resp = await fetch('/harphub/backend/api_harphub.php?action=save_workspace_note', {
+            const resp = await fetch('/backend/api_harphub.php?action=save_workspace_note', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ workspace_id: workspaceId, content, metadata })
@@ -108,7 +108,7 @@ export const WorkspaceProvider = ({ children, lessonId, userId, initialData, les
     const addBookmark = async (type, title, position, metadata = {}) => {
         if (!workspaceId) return;
         try {
-            const resp = await fetch('/harphub/backend/api_harphub.php?action=add_workspace_bookmark', {
+            const resp = await fetch('/backend/api_harphub.php?action=add_workspace_bookmark', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ workspace_id: workspaceId, type, title, position, metadata })

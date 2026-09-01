@@ -10,7 +10,7 @@ import SharedScalesPanel from '../components/SharedScalesPanel';
 // --- CONSTANTES ---
 const API_URL = import.meta.env.MODE === 'development' 
     ? 'http://localhost/harphub/backend/api_harphub.php' 
-    : './backend/api_harphub.php';
+    : '/backend/api_harphub.php';
 
 const BLUES_STRUCTURE = ['I', 'I', 'I', 'I', 'IV', 'IV', 'I', 'I', 'V', 'IV', 'I', 'V'];
 const NUMERAL_TO_INTERVAL = { 'I': 0, 'IV': 5, 'V': 7 };
