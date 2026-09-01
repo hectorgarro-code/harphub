@@ -2522,7 +2522,9 @@ try {
     }
 } catch (PDOException $e) {
     http_response_code(500);
-    // Log error internally in a real production app
     error_log($e->getMessage());
-    echo json_encode(['error' => 'Internal Server Error. Please try again later.']);
+    echo json_encode([
+        'error' => 'Database Connection Error',
+        'details' => $e->getMessage()
+    ]);
 }
