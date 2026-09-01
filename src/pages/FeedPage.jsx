@@ -136,20 +136,23 @@ export default function FeedPage({
             <div className="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 px-6 py-4">
                 <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="flex items-center gap-2">
-                        {tabs.map(tab => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-                                    activeTab === tab.id 
-                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' 
-                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                                }`}
-                            >
-                                <tab.icon size={14} />
-                                {tab.label}
-                            </button>
-                        ))}
+                        {tabs.map(tab => {
+                            const TabIcon = tab.icon;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+                                        activeTab === tab.id 
+                                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' 
+                                        : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                    }`}
+                                >
+                                    <TabIcon size={14} />
+                                    {tab.label}
+                                </button>
+                            );
+                        })}
                     </div>
                     
                     <div className="flex items-center gap-3">

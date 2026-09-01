@@ -1,0 +1,22 @@
+<IfModule mod_mime.c>
+  AddType application/javascript .js .mjs
+  AddType audio/mpeg .mp3
+  AddType application/octet-stream .sf2 .gp .gp3 .gp4 .gp5 .gpx
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Permitir acceso directo a backend y uploads
+  RewriteRule ^backend/ - [L]
+  RewriteRule ^uploads/ - [L]
+
+  # Si el archivo o directorio existe físicamente, servirlo directamente
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Para todas las demás rutas de la Single Page Application (SPA), redirigir a index.html
+  RewriteRule ^ index.html [L]
+</IfModule>

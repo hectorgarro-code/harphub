@@ -267,17 +267,20 @@ const HarpHubLanding = ({ onEnter = () => console.log("Enter") }) => {
                                 { icon: Network, title: 'Relaciona conceptos', desc: 'Entiende cómo interactúa una escala con un backing track específico.' },
                                 { icon: BrainCircuit, title: 'Crea rutas progresivas', desc: 'No copies patrones a ciegas. Desarrolla memoria musical real.' },
                                 { icon: Share2, title: 'Comparte con la comunidad', desc: 'El mejor avance aparece cuando alguien conecta una idea que no habías visto.' }
-                            ].map((item, i) => (
-                                <div key={i} className="flex gap-4 items-start">
-                                    <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex-shrink-0 flex items-center justify-center text-blue-400 border border-blue-500/20">
-                                        <item.icon size={20} />
+                            ].map((item, i) => {
+                                const ItemIcon = item.icon;
+                                return (
+                                    <div key={i} className="flex gap-4 items-start">
+                                        <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex-shrink-0 flex items-center justify-center text-blue-400 border border-blue-500/20">
+                                            <ItemIcon size={20} />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-bold text-white mb-1">{item.title}</h4>
+                                            <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="text-lg font-bold text-white mb-1">{item.title}</h4>
-                                        <p className="text-slate-400 text-sm leading-relaxed">{item.desc}</p>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                     <div className="relative">

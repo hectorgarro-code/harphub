@@ -9,8 +9,8 @@ export function useReminders(userId) {
         if (!userId) return;
         try {
             setLoading(true);
-            const response = await api.request(`action=get_smart_reminders&user_id=${userId}`);
-            if (response.success && response.reminders) {
+            const response = await api.request('get_smart_reminders', 'GET', { user_id: userId });
+            if (response && response.success && response.reminders) {
                 setReminders(response.reminders);
             }
         } catch (error) {
@@ -26,17 +26,14 @@ export function useReminders(userId) {
 
     const updateReminder = async (reminderId, status, snoozedUntil = null) => {
         try {
-            const result = await api.request('action=update_reminder_status', {
-                method: 'POST',
-                body: JSON.stringify({
-                    user_id: userId,
-                    reminder_id: reminderId,
-                    status,
-                    snoozed_until: snoozedUntil
-                })
+            const result = await api.request('update_reminder_status', 'POST', {
+                user_id: userId,
+                reminder_id: reminderId,
+                status,
+                snoozed_until: snoozedUntil
             });
 
-            if (result.success) {
+            if (result && result.success) {
                 // Optimistic UI update
                 setReminders(prev => prev.filter(r => r.id !== reminderId));
                 return true;

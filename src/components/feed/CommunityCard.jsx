@@ -56,14 +56,14 @@ const CommunityCard = ({ activity, onPractice }) => {
         }
     };
 
-    const current = config[type] || config.lesson_new;
+    const CurrentIcon = current.icon;
 
     return (
         <FeedCard activity={activity} hideDefaultHeader={false} onPractice={onPractice}>
             <div className="flex flex-col gap-6">
                 <div className="flex items-center gap-4">
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${current.bg} ${current.color}`}>
-                        <current.icon size={24} />
+                        <CurrentIcon size={24} />
                     </div>
                     <div>
                         <h4 className="text-lg font-black text-white leading-tight">

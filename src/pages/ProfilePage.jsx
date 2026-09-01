@@ -375,19 +375,22 @@ export default function ProfilePage() {
 
                         <div>
                             <div className="flex items-center gap-8 mb-10 border-b border-white/5 pb-1">
-                            {tabs.map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2.5 pb-4 px-1 text-xs font-black uppercase tracking-[0.2em] transition relative ${activeTab === tab.id ? 'text-blue-500' : 'text-slate-500 hover:text-slate-300'}`}
-                                >
-                                    <tab.icon size={16} />
-                                    {tab.label}
-                                    {activeTab === tab.id && (
-                                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6]"></div>
-                                    )}
-                                </button>
-                            ))}
+                            {tabs.map(tab => {
+                                const TabIcon = tab.icon;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={`flex items-center gap-2.5 pb-4 px-1 text-xs font-black uppercase tracking-[0.2em] transition relative ${activeTab === tab.id ? 'text-blue-500' : 'text-slate-500 hover:text-slate-300'}`}
+                                    >
+                                        <TabIcon size={16} />
+                                        {tab.label}
+                                        {activeTab === tab.id && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6]"></div>
+                                        )}
+                                    </button>
+                                );
+                            })}
                             </div>
                         </div>
 

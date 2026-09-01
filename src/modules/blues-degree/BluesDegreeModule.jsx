@@ -129,21 +129,24 @@ const BluesDegreeModule = ({
                         </button>
                     </div>
                     <div className="grid grid-cols-1 gap-4 overflow-y-auto pb-12">
-                        {PAGES.map(page => (
-                            <button
-                                key={page.id}
-                                onClick={() => handlePageChange(page.id)}
-                                className={`flex items-center gap-6 p-6 rounded-3xl transition-all duration-300 border ${activePageId === page.id ? 'bg-blue-600 border-blue-400 shadow-xl' : 'bg-white/5 border-white/5 text-slate-300'}`}
-                            >
-                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${activePageId === page.id ? 'bg-white/20' : 'bg-slate-800'}`}>
-                                    <page.icon size={28} />
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-lg font-black tracking-tight text-white">{page.title}</p>
-                                    <p className={`text-[10px] uppercase font-bold tracking-widest ${activePageId === page.id ? 'text-blue-200' : 'text-slate-500'}`}>HarpHub Module</p>
-                                </div>
-                            </button>
-                        ))}
+                        {PAGES.map(page => {
+                            const PageIcon = page.icon;
+                            return (
+                                <button
+                                    key={page.id}
+                                    onClick={() => handlePageChange(page.id)}
+                                    className={`flex items-center gap-6 p-6 rounded-3xl transition-all duration-300 border ${activePageId === page.id ? 'bg-blue-600 border-blue-400 shadow-xl' : 'bg-white/5 border-white/5 text-slate-300'}`}
+                                >
+                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${activePageId === page.id ? 'bg-white/20' : 'bg-slate-800'}`}>
+                                        <PageIcon size={28} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-lg font-black tracking-tight text-white">{page.title}</p>
+                                        <p className={`text-[10px] uppercase font-bold tracking-widest ${activePageId === page.id ? 'text-blue-200' : 'text-slate-500'}`}>HarpHub Module</p>
+                                    </div>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
             </div>

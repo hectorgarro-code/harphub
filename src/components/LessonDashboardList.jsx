@@ -193,6 +193,8 @@ const LessonDashboardList = ({ items, setSelectedItem, patchItem, onAddLesson, f
 
                     const isOpen = openCategory === cat.id;
 
+                    const CatIcon = cat.icon;
+
                     return (
                         <div key={cat.id} id={idx === 0 ? "tour-accordion" : undefined} className={`bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-hidden transition-all duration-300 ${isOpen ? 'shadow-2xl ring-1 ring-blue-500/20' : 'hover:bg-slate-800/40'}`}>
                             <div
@@ -201,7 +203,7 @@ const LessonDashboardList = ({ items, setSelectedItem, patchItem, onAddLesson, f
                             >
                                 <div className="flex items-center gap-5">
                                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isOpen ? `${cat.bg.replace('/10', '/20')} ${cat.color} shadow-lg ring-1 ring-white/10` : `bg-slate-800/50 ${cat.color} group-hover:bg-slate-700`}`}>
-                                        <cat.icon size={24} />
+                                        <CatIcon size={24} />
                                     </div>
                                     <div className="text-left">
                                         <h3 className={`text-lg font-black uppercase tracking-tight transition-colors ${isOpen ? 'text-white' : 'text-slate-300 group-hover:text-white'}`}>
@@ -287,7 +289,7 @@ const LessonDashboardList = ({ items, setSelectedItem, patchItem, onAddLesson, f
                                                         </div>
                                                     ) : (
                                                         <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50 group-hover:bg-slate-800 transition-colors">
-                                                            <cat.icon size={48} className="text-slate-700/20 mb-2 group-hover:scale-110 transition-transform" />
+                                                            <CatIcon size={48} className="text-slate-700/20 mb-2 group-hover:scale-110 transition-transform" />
                                                             <span className="text-[8px] font-black text-slate-700/40 uppercase tracking-widest">Lección Local</span>
                                                         </div>
                                                     )}
@@ -335,7 +337,7 @@ const LessonDashboardList = ({ items, setSelectedItem, patchItem, onAddLesson, f
                                                 <div className="p-4 flex gap-4 items-start">
                                                     {/* "Channel" Icon (Category Icon) */}
                                                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-inner border border-white/5 transition-transform group-hover:scale-110 ${parseInt(item.completed) ? 'bg-emerald-500/10 text-emerald-500' : `${cat.bg} ${cat.color}`}`}>
-                                                        <cat.icon size={18} />
+                                                        <CatIcon size={18} />
                                                     </div>
 
                                                     <div className="flex-1 min-w-0">

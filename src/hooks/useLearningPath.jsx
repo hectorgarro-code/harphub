@@ -11,8 +11,8 @@ export function useLearningPath(userId) {
     const fetchPaths = useCallback(async (filter = 'all') => {
         try {
             setLoading(true);
-            const response = await api.request(`action=get_learning_paths&user_id=${userId}&filter=${filter}`);
-            if (response.success) {
+            const response = await api.request('get_learning_paths', 'GET', { user_id: userId, filter });
+            if (response && response.success) {
                 setPaths(response.paths || []);
             }
         } catch (error) {
@@ -26,8 +26,8 @@ export function useLearningPath(userId) {
         if (!pathId) return;
         try {
             setLoading(true);
-            const response = await api.request(`action=get_learning_path_detailed&id=${pathId}&user_id=${userId}`);
-            if (response.success) {
+            const response = await api.request('get_learning_path_detailed', 'GET', { id: pathId, user_id: userId });
+            if (response && response.success) {
                 setCurrentPath(response.path);
                 setPathNodes(response.nodes || []);
                 setPathProgress(response.progress);
@@ -42,16 +42,13 @@ export function useLearningPath(userId) {
     const updateProgress = async (pathId, nodeId, action = 'complete') => {
         // Optimistic UI updates could go here
         try {
-            const result = await api.request('action=update_path_progress', {
-                method: 'POST',
-                body: JSON.stringify({
-                    user_id: userId,
-                    path_id: pathId,
-                    node_id: nodeId,
-                    action
-                })
+            const result = await api.request('update_path_progress', 'POST', {
+                user_id: userId,
+                path_id: pathId,
+                node_id: nodeId,
+                action
             });
-            if (result.success) {
+            if (result && result.success) {
                 // Refresh progress after updating
                 await fetchPathDetails(pathId);
                 return true;
