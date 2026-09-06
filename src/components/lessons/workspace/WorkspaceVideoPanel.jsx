@@ -1,21 +1,28 @@
 import React from 'react';
 import { useWorkspace } from '../../../context/WorkspaceContext';
+import { getYouTubeId } from '../../../utils/constants';
 
 const WorkspaceVideoPanel = ({ youtubeId, title }) => {
-    // Basic YouTube embed for now, but in the future it should sync with AlphaTab
-    const videoUrl = `https://www.youtube.com/embed/${youtubeId}?rel=0&modestbranding=1&enablejsapi=1`;
+    const cleanId = getYouTubeId(youtubeId) || youtubeId;
+    const videoUrl = cleanId ? `https://www.youtube.com/embed/${cleanId}?rel=0&modestbranding=1&enablejsapi=1` : '';
 
     return (
         <div className="h-full flex flex-col bg-black">
             <div className="flex-1 relative">
-                <iframe 
-                    src={videoUrl}
-                    title={title}
-                    className="absolute inset-0 w-full h-full"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                />
+                {cleanId ? (
+                    <iframe 
+                        src={videoUrl}
+                        title={title}
+                        className="absolute inset-0 w-full h-full"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                    />
+                ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 font-bold p-6 text-center">
+                        <p className="text-sm">Sin video de YouTube asignado</p>
+                    </div>
+                )}
             </div>
             
             {/* Quick Context Bar */}

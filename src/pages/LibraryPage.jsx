@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CollectionModal from '../components/collections/CollectionModal';
+import { getYouTubeId } from '../utils/constants';
 
 export default function LibraryPage({ setIsAdding }) {
     const { user } = useAuth();
@@ -398,10 +399,11 @@ export default function LibraryPage({ setIsAdding }) {
                                     {isExpanded && (
                                         <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 border-t border-white/5 bg-black/20">
                                             {group.lessons.map(lesson => {
-                                                const thumb = lesson.youtube_id 
-                                                    ? `https://img.youtube.com/vi/${lesson.youtube_id}/hqdefault.jpg` 
+                                                const ytId = getYouTubeId(lesson.youtubeId || lesson.youtube_id || '');
+                                                const thumb = ytId 
+                                                    ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` 
                                                     : lesson.cover_image 
-                                                        ? (lesson.cover_image.startsWith('http') ? lesson.cover_image : `http://localhost/harphub/${lesson.cover_image}`)
+                                                        ? (lesson.cover_image.startsWith('http') ? lesson.cover_image : `/backend/uploads/${lesson.cover_image}`)
                                                         : null;
 
                                                 return (
@@ -412,7 +414,7 @@ export default function LibraryPage({ setIsAdding }) {
                                                     >
                                                         <div className="aspect-video relative overflow-hidden bg-slate-800">
                                                             {thumb ? (
-                                                                <img src={thumb} className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110" alt={lesson.title} />
+                                                                <img src={thumb} className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110" alt={lesson.title || 'Lección'} />
                                                             ) : (
                                                                 <div className="w-full h-full flex items-center justify-center">
                                                                     <Play size={40} className="text-slate-700 group-hover/card:text-blue-500 transition-colors" />
@@ -448,11 +450,11 @@ export default function LibraryPage({ setIsAdding }) {
                                                                     <Clock size={12} />
                                                                 </div>
                                                                 <h4 className="font-black text-white leading-tight line-clamp-2 group-hover/card:text-blue-400 transition-colors">
-                                                                    {lesson.title}
+                                                                    {lesson.title || 'Lección sin título'}
                                                                 </h4>
                                                             </div>
                                                             <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
-                                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">{lesson.instrument?.charAt(0)}. • {title}</span>
+                                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">{lesson.instrument || 'Armónica'} • {group.title}</span>
                                                             </div>
                                                         </div>
                                                     </Link>

@@ -789,9 +789,9 @@ try {
                 http_response_code(400); echo json_encode(['error' => 'Missing lesson ID']); exit;
             }
 
-            $stmt = $pdo->prepare("SELECT l.*, u.username as creator_name 
+            $stmt = $pdo->prepare("SELECT l.*, COALESCE(u.username, 'Músico') as creator_name 
                                   FROM lessons l 
-                                  JOIN users u ON l.user_id = u.id 
+                                  LEFT JOIN users u ON l.user_id = u.id 
                                   WHERE l.id = ?");
             $stmt->execute([$lesson_id]);
             $lesson = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1308,13 +1308,14 @@ try {
         }
 
         if ($action === 'lessons' || $action === 'get_lessons') {
-            $user_id = get_int($_GET['user_id'] ?? 0);
-            if (!$user_id) {
-                echo json_encode([]);
-                exit;
+            $raw_user_id = $_GET['user_id'] ?? '';
+            if (!empty($raw_user_id)) {
+                $stmt = $pdo->prepare("SELECT * FROM lessons WHERE user_id = ? OR user_id = ? OR visibility = 'public' ORDER BY createdAt DESC");
+                $stmt->execute([$raw_user_id, (int)$raw_user_id]);
+            } else {
+                $stmt = $pdo->prepare("SELECT * FROM lessons ORDER BY createdAt DESC LIMIT 100");
+                $stmt->execute();
             }
-            $stmt = $pdo->prepare("SELECT * FROM lessons WHERE user_id = ? ORDER BY createdAt DESC");
-            $stmt->execute([$user_id]);
             echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
             exit;
         }

@@ -63,24 +63,21 @@ export const getTikTokId = (url) => {
 
 export const getYouTubeId = (url) => {
     if (!url) return '';
-    const trimmed = url.trim();
-    if (trimmed.length === 11) return trimmed; // Ya es un ID
+    const trimmed = String(url).trim();
+    if (trimmed.length === 11 && !trimmed.includes('/') && !trimmed.includes('?') && !trimmed.includes(':')) return trimmed; // Ya es un ID de 11 caracteres
     
-    // Regex mejorada para soportar shorts, embeds, watch?v=, etc.
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
     const match = trimmed.match(regExp);
-    
-    if (match && match[2].length === 11) {
-        return match[2];
+    if (match && match[1]) {
+        return match[1];
     }
     
-    // Intento secundario para URLs limpias sin parámetros extras
     try {
         const urlObj = new URL(trimmed);
         if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
             const v = urlObj.searchParams.get('v');
             if (v && v.length === 11) return v;
-            const pathParts = urlObj.pathname.split('/');
+            const pathParts = urlObj.pathname.split('/').filter(Boolean);
             const lastPart = pathParts[pathParts.length - 1];
             if (lastPart && lastPart.length === 11) return lastPart;
         }
