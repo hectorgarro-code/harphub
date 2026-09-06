@@ -82,6 +82,32 @@ export default function App() {
     // Tour & Routine
     const [tourSteps, setTourSteps] = useState([]);
 
+    // Ensure AudioContext / Tone.js is resumed on first user gesture
+    useEffect(() => {
+        const handleGesture = async () => {
+            if (Tone.getContext().state !== 'running') {
+                try {
+                    await Tone.start();
+                } catch (e) {
+                    // Ignore background audio start restriction errors prior to user interaction
+                }
+            }
+            window.removeEventListener('pointerdown', handleGesture);
+            window.removeEventListener('keydown', handleGesture);
+            window.removeEventListener('touchstart', handleGesture);
+        };
+
+        window.addEventListener('pointerdown', handleGesture);
+        window.addEventListener('keydown', handleGesture);
+        window.addEventListener('touchstart', handleGesture);
+
+        return () => {
+            window.removeEventListener('pointerdown', handleGesture);
+            window.removeEventListener('keydown', handleGesture);
+            window.removeEventListener('touchstart', handleGesture);
+        };
+    }, []);
+
 
 
     if (authLoading) return (

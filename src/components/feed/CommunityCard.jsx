@@ -56,6 +56,7 @@ const CommunityCard = ({ activity, onPractice }) => {
         }
     };
 
+    const current = config[type] || config.lesson_new;
     const CurrentIcon = current.icon;
 
     return (

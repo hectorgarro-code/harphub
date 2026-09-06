@@ -76,7 +76,9 @@ export function MusicProvider({ children }) {
 
     useEffect(() => {
         if (isMetroOn) {
-            Tone.start();
+            if (Tone.getContext().state !== 'running') {
+                Tone.start().catch(() => {});
+            }
             Tone.Transport.cancel();
             
             // Loop for the metronome click or drum pattern
