@@ -10,7 +10,9 @@ const ACHIEVEMENTS_DEF = {
     'streak_3': { title: 'Compromiso', description: 'Mantén una racha de 3 días', icon: <Flame className="text-orange-500" /> },
     'streak_7': { title: 'Imparable', description: 'Mantén una racha de 7 días', icon: <Zap className="text-amber-500" /> },
     'points_1000': { title: 'Entusiasta', description: 'Alcanza los 1,000 puntos', icon: <Star className="text-yellow-400" /> },
-    'guitar_master': { title: 'Guitar Hero', description: 'Juega 10 veces al Guitar Master', icon: <Hash className="text-purple-400" /> },
+    'novato_app': { title: '🥉 Novato Digital', description: 'Usa la partitura AlphaTab y ajusta el BPM', icon: <Zap className="text-amber-400" /> },
+    'practico_app': { title: '🥈 Práctico Constante', description: 'Graba una toma A/B y envíala a revisión', icon: <Target className="text-blue-400" /> },
+    'arquitecto_app': { title: '🥇 Arquitecto Musical', description: 'Crea tu primera lección o haz Fork a una ruta', icon: <Award className="text-purple-400" /> },
     'blues_master': { title: 'Blues Soul', description: 'Completa 5 ejercicios de Blues', icon: <Music className="text-emerald-400" /> },
 };
 

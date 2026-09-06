@@ -39,6 +39,7 @@ import MidiSettingsModal from './components/midi/MidiSettingsModal';
 import HelpTutorialModal from './components/HelpTutorialModal';
 import InteractiveTour from './components/InteractiveTour';
 import GlobalMidiSound from './components/midi/GlobalMidiSound';
+import CommandPaletteModal from './components/CommandPaletteModal';
 
 // Utils
 import { CATEGORIES, NOTES, ROUTINE_STEPS } from './utils/constants';
@@ -78,9 +79,22 @@ export default function App() {
     const [isTabEditorOpen, setIsTabEditorOpen] = useState(false);
     const [isKeyToolOpen, setIsKeyToolOpen] = useState(false);
     const [isBluesDegreeOpen, setIsBluesDegreeOpen] = useState(false);
+    const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
     
     // Tour & Routine
     const [tourSteps, setTourSteps] = useState([]);
+
+    // Global Shortcut: Ctrl+K / Cmd+K
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                setIsCommandPaletteOpen((prev) => !prev);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     // Ensure AudioContext / Tone.js is resumed on first user gesture
     useEffect(() => {
@@ -220,6 +234,17 @@ export default function App() {
                 settings={metroSettings}
                 setSettings={setMetroSettings} 
                 setBpm={setBpm} 
+            />
+
+            <CommandPaletteModal 
+                isOpen={isCommandPaletteOpen}
+                onClose={() => setIsCommandPaletteOpen(false)}
+                setIsProMetroOpen={setIsProMetroOpen}
+                setIsTunerOpen={setIsTunerOpen}
+                setIsGuitarTunerOpen={setIsGuitarTunerOpen}
+                setIsBluesDegreeOpen={setIsBluesDegreeOpen}
+                setIsTutorialOpen={setIsTutorialOpen}
+                setIsAdding={setIsAdding}
             />
 
             <GlobalMidiSound />
