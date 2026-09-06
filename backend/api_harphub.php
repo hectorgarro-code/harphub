@@ -9,57 +9,67 @@ header("X-Frame-Options: SAMEORIGIN");
 header("X-XSS-Protection: 1; mode=block");
 
 // Security helper functions
-function sanitize_string($str) {
-    return htmlspecialchars(strip_tags(trim($str)), ENT_QUOTES, 'UTF-8');
-}
-
-function get_int($var, $default = 0) {
-    return isset($var) ? intval($var) : $default;
-}
-
-function validate_file($file, $allowed_extensions, $allowed_mimes) {
-    if ($file['error'] !== UPLOAD_ERR_OK) return false;
-    
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    if (!in_array($ext, $allowed_extensions)) return false;
-    
-    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-    $mime = finfo_file($finfo, $file['tmp_name']);
-    finfo_close($finfo);
-    
-    return in_array($mime, $allowed_mimes);
-}
-
-function log_activity($pdo, $user_id, $type, $content_id = null, $metadata = []) {
-    try {
-        $stmt = $pdo->prepare("INSERT INTO activities (user_id, type, content_id, metadata) VALUES (?, ?, ?, ?)");
-        $stmt->execute([
-            $user_id,
-            $type,
-            $content_id,
-            is_array($metadata) ? json_encode($metadata) : $metadata
-        ]);
-        return true;
-    } catch (PDOException $e) {
-        return false;
+if (!function_exists('sanitize_string')) {
+    function sanitize_string($str) {
+        return htmlspecialchars(strip_tags(trim($str)), ENT_QUOTES, 'UTF-8');
     }
 }
 
-function generate_activity_card($pdo, $user_id, $type, $title, $content, $metrics = [], $lesson_id = null, $submission_id = null) {
-    try {
-        $stmt = $pdo->prepare("INSERT INTO activity_cards (user_id, type, title, content, metrics_json, lesson_id, submission_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([
-            $user_id,
-            $type,
-            $title,
-            $content,
-            json_encode($metrics),
-            $lesson_id,
-            $submission_id
-        ]);
-        return true;
-    } catch (PDOException $e) {
-        return false;
+if (!function_exists('get_int')) {
+    function get_int($var, $default = 0) {
+        return isset($var) ? intval($var) : $default;
+    }
+}
+
+if (!function_exists('validate_file')) {
+    function validate_file($file, $allowed_extensions, $allowed_mimes) {
+        if ($file['error'] !== UPLOAD_ERR_OK) return false;
+        
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed_extensions)) return false;
+        
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+        
+        return in_array($mime, $allowed_mimes);
+    }
+}
+
+if (!function_exists('log_activity')) {
+    function log_activity($pdo, $user_id, $type, $content_id = null, $metadata = []) {
+        try {
+            $stmt = $pdo->prepare("INSERT INTO activities (user_id, type, content_id, metadata) VALUES (?, ?, ?, ?)");
+            $stmt->execute([
+                $user_id,
+                $type,
+                $content_id,
+                is_array($metadata) ? json_encode($metadata) : $metadata
+            ]);
+            return true;
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+}
+
+if (!function_exists('generate_activity_card')) {
+    function generate_activity_card($pdo, $user_id, $type, $title, $content, $metrics = [], $lesson_id = null, $submission_id = null) {
+        try {
+            $stmt = $pdo->prepare("INSERT INTO activity_cards (user_id, type, title, content, metrics_json, lesson_id, submission_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([
+                $user_id,
+                $type,
+                $title,
+                $content,
+                json_encode($metrics),
+                $lesson_id,
+                $submission_id
+            ]);
+            return true;
+        } catch (PDOException $e) {
+            return false;
+        }
     }
 }
 
@@ -531,8 +541,8 @@ try {
 
         if ($action === 'get_profile') {
             $username = sanitize_string($_GET['username'] ?? '');
-            $stmt = $pdo->prepare("SELECT id, username, full_name, bio, avatar_url, musical_level, instruments, genres, featured_skills FROM users WHERE username = ?");
-            $stmt->execute([$username]);
+            $stmt = $pdo->prepare("SELECT id, username, full_name, bio, avatar_url, musical_level, instruments, genres, featured_skills FROM users WHERE LOWER(username) = LOWER(?) OR id = ?");
+            $stmt->execute([$username, (int)$username]);
             $user_profile = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$user_profile) {
@@ -550,17 +560,17 @@ try {
             $user_profile['following_count'] = (int)$stmt->fetchColumn();
 
             // Get public asset counts
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM lessons WHERE user_id = ? AND visibility = 'public'");
-            $stmt->execute([$user_profile['id']]);
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM lessons WHERE (user_id = ? OR user_id = ?) AND (visibility = 'public' OR visibility = 'remixable' OR visibility IS NULL OR visibility = '')");
+            $stmt->execute([$user_profile['id'], (string)$user_profile['id']]);
             $user_profile['public_lessons_count'] = (int)$stmt->fetchColumn();
 
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM collections WHERE user_id = ? AND visibility = 'public'");
-            $stmt->execute([$user_profile['id']]);
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM collections WHERE (user_id = ? OR user_id = ?) AND (visibility = 'public' OR visibility = 'remixable' OR visibility IS NULL OR visibility = '')");
+            $stmt->execute([$user_profile['id'], (string)$user_profile['id']]);
             $user_profile['public_collections_count'] = (int)$stmt->fetchColumn();
 
             // Get public assets
-            $stmt = $pdo->prepare("SELECT id, title, category, instrument, artist, difficulty, createdAt FROM lessons WHERE user_id = ? AND visibility = 'public' ORDER BY createdAt DESC");
-            $stmt->execute([$user_profile['id']]);
+            $stmt = $pdo->prepare("SELECT id, title, category, instrument, artist, difficulty, createdAt FROM lessons WHERE (user_id = ? OR user_id = ?) AND (visibility = 'public' OR visibility = 'remixable' OR visibility IS NULL OR visibility = '') ORDER BY createdAt DESC");
+            $stmt->execute([$user_profile['id'], (string)$user_profile['id']]);
             $user_profile['public_lessons'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $stmt = $pdo->prepare("SELECT c.*, 
@@ -1318,10 +1328,10 @@ try {
         if ($action === 'lessons' || $action === 'get_lessons') {
             $raw_user_id = $_GET['user_id'] ?? '';
             if (!empty($raw_user_id)) {
-                $stmt = $pdo->prepare("SELECT * FROM lessons WHERE user_id = ? OR user_id = ? OR visibility = 'public' ORDER BY createdAt DESC");
+                $stmt = $pdo->prepare("SELECT * FROM lessons WHERE user_id = ? OR user_id = ? OR visibility = 'public' OR visibility = 'remixable' OR visibility IS NULL OR visibility = '' ORDER BY createdAt DESC");
                 $stmt->execute([$raw_user_id, (int)$raw_user_id]);
             } else {
-                $stmt = $pdo->prepare("SELECT * FROM lessons ORDER BY createdAt DESC LIMIT 100");
+                $stmt = $pdo->prepare("SELECT * FROM lessons WHERE visibility = 'public' OR visibility = 'remixable' OR visibility IS NULL OR visibility = '' ORDER BY createdAt DESC LIMIT 100");
                 $stmt->execute();
             }
             echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
