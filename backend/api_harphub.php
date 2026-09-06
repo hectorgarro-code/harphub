@@ -1191,13 +1191,24 @@ try {
                     error_log("Internal Migration error: " . $e->getMessage());
                 }
 
-                $stmt = $pdo->prepare("SELECT c.*, 
-                                      (SELECT COUNT(*) FROM collection_lessons WHERE collection_id = c.id) as lesson_count,
-                                      (SELECT l.youtubeId FROM lessons l JOIN collection_lessons cl ON l.id = cl.lesson_id WHERE cl.collection_id = c.id AND l.youtubeId IS NOT NULL AND l.youtubeId != '' LIMIT 1) as sample_youtube_id
-                                      FROM collections c 
-                                      WHERE c.user_id = ? OR c.visibility = 'public' 
-                                      ORDER BY c.updated_at DESC");
-                $stmt->execute([$user_id]);
+                $raw_user_id = $_GET['user_id'] ?? '';
+                if (!empty($raw_user_id)) {
+                    $stmt = $pdo->prepare("SELECT c.*, 
+                                          (SELECT COUNT(*) FROM collection_lessons WHERE collection_id = c.id) as lesson_count,
+                                          (SELECT l.youtubeId FROM lessons l JOIN collection_lessons cl ON l.id = cl.lesson_id WHERE cl.collection_id = c.id AND l.youtubeId IS NOT NULL AND l.youtubeId != '' LIMIT 1) as sample_youtube_id
+                                          FROM collections c 
+                                          WHERE c.user_id = ? OR c.user_id = ? 
+                                          ORDER BY c.updated_at DESC");
+                    $stmt->execute([$raw_user_id, (int)$raw_user_id]);
+                } else {
+                    $stmt = $pdo->prepare("SELECT c.*, 
+                                          (SELECT COUNT(*) FROM collection_lessons WHERE collection_id = c.id) as lesson_count,
+                                          (SELECT l.youtubeId FROM lessons l JOIN collection_lessons cl ON l.id = cl.lesson_id WHERE cl.collection_id = c.id AND l.youtubeId IS NOT NULL AND l.youtubeId != '' LIMIT 1) as sample_youtube_id
+                                          FROM collections c 
+                                          WHERE c.visibility = 'public' 
+                                          ORDER BY c.updated_at DESC");
+                    $stmt->execute();
+                }
                 $collections = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 echo json_encode(['success' => true, 'collections' => $collections]);
@@ -1328,10 +1339,13 @@ try {
         if ($action === 'lessons' || $action === 'get_lessons') {
             $raw_user_id = $_GET['user_id'] ?? '';
             if (!empty($raw_user_id)) {
-                $stmt = $pdo->prepare("SELECT * FROM lessons WHERE user_id = ? OR user_id = ? OR visibility = 'public' OR visibility = 'remixable' OR visibility IS NULL OR visibility = '' ORDER BY createdAt DESC");
-                $stmt->execute([$raw_user_id, (int)$raw_user_id]);
+                $stmt = $pdo->prepare("SELECT DISTINCT l.* FROM lessons l 
+                                       LEFT JOIN user_saved_items s ON (s.entity_id = l.id AND s.entity_type = 'lesson' AND (s.user_id = ? OR s.user_id = ?))
+                                       WHERE l.user_id = ? OR l.user_id = ? OR s.id IS NOT NULL 
+                                       ORDER BY l.createdAt DESC");
+                $stmt->execute([$raw_user_id, (int)$raw_user_id, $raw_user_id, (int)$raw_user_id]);
             } else {
-                $stmt = $pdo->prepare("SELECT * FROM lessons WHERE visibility = 'public' OR visibility = 'remixable' OR visibility IS NULL OR visibility = '' ORDER BY createdAt DESC LIMIT 100");
+                $stmt = $pdo->prepare("SELECT * FROM lessons WHERE visibility = 'public' OR visibility = 'remixable' ORDER BY createdAt DESC LIMIT 100");
                 $stmt->execute();
             }
             echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));

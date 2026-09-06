@@ -106,11 +106,31 @@ export default function LibraryPage({ setIsAdding }) {
     }, [lessons, searchTerm, instrumentFilter, completionFilter, durationFilter, sortBy]);
 
     const groupedLessons = useMemo(() => {
-        const groups = collections.map(col => {
+        // Deduplicate collections by title
+        const uniqueCollections = [];
+        const seenColTitles = new Set();
+        collections.forEach(col => {
+            const key = (col.title || '').trim().toLowerCase();
+            if (key && !seenColTitles.has(key)) {
+                seenColTitles.add(key);
+                uniqueCollections.push(col);
+            }
+        });
+
+        const groups = uniqueCollections.map(col => {
             const lessonsInCol = filteredLessons.filter(l => l.category === col.title || l.collection_id === col.id);
+            // Deduplicate lessons by ID inside this collection
+            const uniqueLessons = [];
+            const seenLessonIds = new Set();
+            lessonsInCol.forEach(l => {
+                if (l.id && !seenLessonIds.has(l.id)) {
+                    seenLessonIds.add(l.id);
+                    uniqueLessons.push(l);
+                }
+            });
             return {
                 ...col,
-                lessons: lessonsInCol,
+                lessons: uniqueLessons,
                 type: col.title?.toLowerCase()
             };
         }).filter(g => g.lessons.length > 0);
@@ -127,23 +147,33 @@ export default function LibraryPage({ setIsAdding }) {
                     youtube_id: act.metadata?.youtube_id,
                     instrument: act.metadata?.instrument || 'Varios',
                     duration: act.metadata?.duration ? `${Math.floor(act.metadata.duration / 60)}:00` : '5:00',
-                    is_activity: true // Flag to handle different link/data
+                    is_activity: true
                 })),
                 type: 'daily'
             });
         }
 
         const otherLessons = filteredLessons.filter(l => 
-            !collections.some(col => l.category === col.title || l.collection_id === col.id)
+            !uniqueCollections.some(col => l.category === col.title || l.collection_id === col.id)
         );
 
         if (otherLessons.length > 0) {
-            groups.push({
-                id: 'others',
-                title: 'Otras Lecciones',
-                lessons: otherLessons,
-                type: 'others'
+            const uniqueOtherLessons = [];
+            const seenOtherIds = new Set();
+            otherLessons.forEach(l => {
+                if (l.id && !seenOtherIds.has(l.id)) {
+                    seenOtherIds.add(l.id);
+                    uniqueOtherLessons.push(l);
+                }
             });
+            if (uniqueOtherLessons.length > 0) {
+                groups.push({
+                    id: 'others',
+                    title: 'Otras Lecciones',
+                    lessons: uniqueOtherLessons,
+                    type: 'others'
+                });
+            }
         }
 
         return groups;
@@ -422,6 +452,23 @@ export default function LibraryPage({ setIsAdding }) {
                                                             )}
                                                             <div className="absolute inset-0 bg-black/20 group-hover/card:bg-transparent transition-colors"></div>
                                                             
+                                                            {/* Delete action overlay */}
+                                                            <div className="absolute top-3 left-3 z-10">
+                                                                <button 
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        if (window.confirm(`¿Eliminar la lección "${lesson.title || 'Lección sin título'}"?`)) {
+                                                                            api.deleteLesson(lesson.id).then(() => fetchLibrary());
+                                                                        }
+                                                                    }}
+                                                                    className="w-7 h-7 bg-red-500/80 hover:bg-red-600 text-white rounded-lg flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity shadow-lg"
+                                                                    title="Eliminar lección"
+                                                                >
+                                                                    <Trash2 size={13} />
+                                                                </button>
+                                                            </div>
+
                                                             {/* Badges on Thumbnail */}
                                                             <div className="absolute top-3 right-3 flex flex-col gap-2">
                                                                 {lesson.completed && (
