@@ -1315,48 +1315,6 @@ try {
             exit;
         }
 
-        if ($action === 'get_discovery') {
-            $user_id = get_int($_GET['user_id'] ?? 0);
-            
-            // Trending Creators
-            $creators = $pdo->query("SELECT id, username, full_name, avatar_url 
-                                    FROM users 
-                                    ORDER BY id DESC LIMIT 5")->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Popular Collections
-            $collections = $pdo->query("SELECT * FROM collections ORDER BY id DESC LIMIT 4")->fetchAll(PDO::FETCH_ASSOC);
-            
-            // Trending Paths
-            $paths = $pdo->query("SELECT p.*, u.username as creator_name,
-                                 (SELECT COUNT(*) FROM learning_path_nodes WHERE path_id = p.id) as node_count,
-                                 (SELECT COUNT(*) FROM learning_path_progress WHERE path_id = p.id) as followers_count
-                                 FROM learning_paths p 
-                                 JOIN users u ON p.creator_id = u.id 
-                                 ORDER BY followers_count DESC, p.id DESC LIMIT 3")->fetchAll(PDO::FETCH_ASSOC);
-            
-            echo json_encode([
-                'success' => true,
-                'creators' => $creators,
-                'collections' => $collections,
-                'paths' => $paths
-            ]);
-            exit;
-        }
-        if ($action === 'get_review_queue') {
-            $creator_id = get_int($_GET['creator_id'] ?? 0);
-            if (!$creator_id) { echo json_encode([]); exit; }
-            
-            $stmt = $pdo->prepare("SELECT s.*, l.title as lesson_title, u.username as student_name, u.avatar_url 
-                                  FROM practice_submissions s 
-                                  JOIN lessons l ON s.lesson_id = l.id 
-                                  JOIN users u ON s.user_id = u.id 
-                                  WHERE l.user_id = ? 
-                                  ORDER BY s.created_at DESC");
-            $stmt->execute([$creator_id]);
-            echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
-            exit;
-        }
-
         if ($action === 'lessons' || $action === 'get_lessons') {
             $raw_user_id = $_GET['user_id'] ?? '';
             if (!empty($raw_user_id)) {
@@ -1367,15 +1325,6 @@ try {
                 $stmt->execute();
             }
             echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
-            exit;
-        }
-
-        if ($action === 'get_collections') {
-            $user_id = get_int($_GET['user_id'] ?? 0);
-            if (!$user_id) { echo json_encode(['success' => false, 'error' => 'Missing user_id']); exit; }
-            $stmt = $pdo->prepare("SELECT * FROM collections WHERE user_id = ? ORDER BY created_at DESC");
-            $stmt->execute([$user_id]);
-            echo json_encode(['success' => true, 'collections' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
             exit;
         }
 
@@ -1411,9 +1360,9 @@ try {
             
             if (move_uploaded_file($file['tmp_name'], $target_path)) {
                 echo json_encode(['success' => true, 'url' => $target_path]);
-            } else {
-                http_response_code(500); echo json_encode(['error' => 'Upload failed']);
             }
+        }
+
         if ($action === 'toggle_activity_reaction') {
             $activity_id = get_int($data['activity_id'] ?? 0);
             $user_id = get_int($data['user_id'] ?? 0);
