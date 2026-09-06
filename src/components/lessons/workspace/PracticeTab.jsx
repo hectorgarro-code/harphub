@@ -13,7 +13,8 @@ export default function PracticeTab({ lesson, user }) {
     const [notes, setNotes] = useState('');
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
+    const [abMode, setAbMode] = useState('B'); // 'A' | 'B' | 'AB'
+    const [isPlayingAudio, setIsPlayingAudio] = useState(false);
     const recorderRef = useRef(new AudioRecorder());
     const intervalRef = useRef(null);
 
@@ -131,14 +132,48 @@ export default function PracticeTab({ lesson, user }) {
                             </div>
                         ) : recordResult ? (
                             <div className="flex flex-col items-center gap-6 w-full px-10">
-                                <div className="w-full h-16 bg-slate-900 rounded-2xl flex items-center px-6 gap-4 border border-white/5">
-                                    <button className="text-blue-500 hover:text-blue-400 transition">
-                                        <Play size={24} fill="currentColor" />
-                                    </button>
-                                    <div className="flex-1 h-1 bg-white/5 rounded-full relative">
-                                        <div className="absolute inset-y-0 left-0 bg-blue-500 rounded-full w-1/3 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                                {/* A/B Comparison Player Bar */}
+                                <div className="w-full bg-slate-900/80 p-6 rounded-3xl border border-blue-500/20 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">Comparación A/B en Vivo</span>
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                onClick={() => setAbMode('A')}
+                                                className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase transition ${abMode === 'A' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                                            >
+                                                Pista A (Referencia)
+                                            </button>
+                                            <button 
+                                                onClick={() => setAbMode('B')}
+                                                className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase transition ${abMode === 'B' ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                                            >
+                                                Pista B (Mi Toma)
+                                            </button>
+                                            <button 
+                                                onClick={() => setAbMode('AB')}
+                                                className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase transition ${abMode === 'AB' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+                                            >
+                                                A+B (Solapado)
+                                            </button>
+                                        </div>
                                     </div>
-                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">00:12 / 00:30</span>
+                                    <div className="w-full h-16 bg-slate-950 rounded-2xl flex items-center px-6 gap-4 border border-white/5">
+                                        <button 
+                                            onClick={() => setIsPlayingAudio(!isPlayingAudio)}
+                                            className="text-blue-500 hover:text-blue-400 transition"
+                                        >
+                                            <Play size={24} fill="currentColor" />
+                                        </button>
+                                        <div className="flex-1 flex flex-col gap-1">
+                                            <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 uppercase">
+                                                <span>{abMode === 'A' ? 'Sonando Referencia' : abMode === 'B' ? 'Sonando Mi Grabación' : 'Modo Solapado A+B'}</span>
+                                                <span>{Math.round(recordResult.duration || 0)}s</span>
+                                            </div>
+                                            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden relative">
+                                                <div className={`h-full rounded-full transition-all ${abMode === 'B' ? 'bg-emerald-500' : abMode === 'AB' ? 'bg-purple-500' : 'bg-blue-500'}`} style={{ width: isPlayingAudio ? '100%' : '0%', transitionDuration: isPlayingAudio ? `${Math.round(recordResult.duration || 10)}s` : '0s' }} />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="flex gap-4">
                                     <button 

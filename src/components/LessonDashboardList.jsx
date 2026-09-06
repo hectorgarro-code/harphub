@@ -142,6 +142,30 @@ const LessonDashboardList = ({ items, setSelectedItem, patchItem, onAddLesson, f
 
     return (
         <div className="flex-1 p-4 lg:p-8 flex flex-col pt-4 custom-scrollbar">
+            {/* Daily Micro-Goal Banner */}
+            <div className="mb-6 p-6 rounded-3xl bg-gradient-to-r from-blue-900/30 via-slate-900/60 to-purple-900/30 border border-blue-500/20 shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-lg shadow-blue-500/10">
+                        <Clock size={24} />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-400 text-[9px] font-black uppercase tracking-widest">Micro-Objetivo del Día</span>
+                            <span className="text-[10px] font-bold text-slate-500">15 min meta diaria</span>
+                        </div>
+                        <h3 className="text-lg font-black text-white leading-tight mt-0.5">
+                            Práctica Tono & Bending en Armónica
+                        </h3>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-white/5">
+                    <div className="text-right">
+                        <span className="text-[10px] font-black uppercase text-slate-500 block">Racha Actual</span>
+                        <span className="text-base font-black text-amber-500">🔥 3 Días Seguidos</span>
+                    </div>
+                </div>
+            </div>
+
             {/* Search and Global Controls */}
             <div className="flex flex-col gap-3 mb-4 shrink-0">
                 <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-2.5 shadow-sm flex gap-2 lg:gap-3">

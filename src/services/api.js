@@ -152,6 +152,18 @@ const api = {
 
     getPracticeStats(userId) {
         return this.request('get_practice_stats', 'GET', { user_id: userId });
+    },
+
+    toggleActivityReaction(userId, activityId, reactionType = 'like') {
+        return this.request('toggle_activity_reaction', 'POST', { user_id: userId, activity_id: activityId, reaction_type: reactionType });
+    },
+
+    addActivityComment(userId, activityId, commentText) {
+        return this.request('add_activity_comment', 'POST', { user_id: userId, activity_id: activityId, comment_text: commentText });
+    },
+
+    getActivityComments(activityId) {
+        return this.request('get_activity_comments', 'GET', { activity_id: activityId });
     }
 };
 

@@ -280,6 +280,27 @@ try {
         marker_type VARCHAR(50) DEFAULT 'general'
     )");
 
+    try { $pdo->exec("ALTER TABLE submission_reviews ADD COLUMN review_audio_url VARCHAR(500) NULL"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE lessons MODIFY COLUMN visibility ENUM('private', 'public', 'unlisted', 'remixable') DEFAULT 'public'"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE collections MODIFY COLUMN visibility ENUM('private', 'public', 'unlisted', 'remixable') DEFAULT 'private'"); } catch (PDOException $e) {}
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS activity_reactions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        activity_id INT NOT NULL,
+        user_id INT NOT NULL,
+        reaction_type VARCHAR(50) DEFAULT 'like',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_user_reaction (activity_id, user_id, reaction_type)
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS activity_comments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        activity_id INT NOT NULL,
+        user_id INT NOT NULL,
+        comment_text TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
     $pdo->exec("CREATE TABLE IF NOT EXISTS learning_paths (
         id INT AUTO_INCREMENT PRIMARY KEY,
         creator_id VARCHAR(255) NOT NULL,
@@ -777,9 +798,38 @@ try {
                     $stmtL->execute([$act['content_id']]);
                     $act['content_data'] = $stmtL->fetch(PDO::FETCH_ASSOC);
                 }
+
+                // Reactions & Comments summary
+                $stmtReact = $pdo->prepare("SELECT reaction_type, COUNT(*) as cnt FROM activity_reactions WHERE activity_id = ? GROUP BY reaction_type");
+                $stmtReact->execute([$act['id']]);
+                $act['reactions'] = $stmtReact->fetchAll(PDO::FETCH_KEY_PAIR);
+
+                $stmtCommCnt = $pdo->prepare("SELECT COUNT(*) FROM activity_comments WHERE activity_id = ?");
+                $stmtCommCnt->execute([$act['id']]);
+                $act['comments_count'] = (int)$stmtCommCnt->fetchColumn();
+
+                $act['user_reaction'] = null;
+                if ($user_id) {
+                    $stmtMyReact = $pdo->prepare("SELECT reaction_type FROM activity_reactions WHERE activity_id = ? AND user_id = ? LIMIT 1");
+                    $stmtMyReact->execute([$act['id'], (int)$user_id]);
+                    $act['user_reaction'] = $stmtMyReact->fetchColumn() ?: null;
+                }
             }
 
             echo json_encode(['success' => true, 'activities' => $activities]);
+            exit;
+        }
+
+        if ($action === 'get_activity_comments') {
+            $activity_id = get_int($_GET['activity_id'] ?? 0);
+            if (!$activity_id) { echo json_encode([]); exit; }
+            $stmt = $pdo->prepare("SELECT c.*, u.username, u.avatar_url 
+                                  FROM activity_comments c 
+                                  JOIN users u ON c.user_id = u.id 
+                                  WHERE c.activity_id = ? 
+                                  ORDER BY c.created_at ASC");
+            $stmt->execute([$activity_id]);
+            echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
             exit;
         }
 
@@ -1364,6 +1414,65 @@ try {
             } else {
                 http_response_code(500); echo json_encode(['error' => 'Upload failed']);
             }
+        if ($action === 'toggle_activity_reaction') {
+            $activity_id = get_int($data['activity_id'] ?? 0);
+            $user_id = get_int($data['user_id'] ?? 0);
+            $reaction_type = sanitize_string($data['reaction_type'] ?? 'like');
+
+            if (!$activity_id || !$user_id) {
+                http_response_code(400); echo json_encode(['error' => 'Missing parameters']); exit;
+            }
+
+            $stmtCheck = $pdo->prepare("SELECT id, reaction_type FROM activity_reactions WHERE activity_id = ? AND user_id = ?");
+            $stmtCheck->execute([$activity_id, $user_id]);
+            $existing = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                if ($existing['reaction_type'] === $reaction_type) {
+                    // Toggle off if same reaction
+                    $stmtDel = $pdo->prepare("DELETE FROM activity_reactions WHERE id = ?");
+                    $stmtDel->execute([$existing['id']]);
+                    $user_reaction = null;
+                } else {
+                    // Update to new reaction
+                    $stmtUpd = $pdo->prepare("UPDATE activity_reactions SET reaction_type = ? WHERE id = ?");
+                    $stmtUpd->execute([$reaction_type, $existing['id']]);
+                    $user_reaction = $reaction_type;
+                }
+            } else {
+                // Insert new reaction
+                $stmtIns = $pdo->prepare("INSERT INTO activity_reactions (activity_id, user_id, reaction_type) VALUES (?, ?, ?)");
+                $stmtIns->execute([$activity_id, $user_id, $reaction_type]);
+                $user_reaction = $reaction_type;
+            }
+
+            // Summary
+            $stmtReact = $pdo->prepare("SELECT reaction_type, COUNT(*) as cnt FROM activity_reactions WHERE activity_id = ? GROUP BY reaction_type");
+            $stmtReact->execute([$activity_id]);
+            $reactions = $stmtReact->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            echo json_encode(['success' => true, 'user_reaction' => $user_reaction, 'reactions' => $reactions]);
+            exit;
+        }
+
+        if ($action === 'add_activity_comment') {
+            $activity_id = get_int($data['activity_id'] ?? 0);
+            $user_id = get_int($data['user_id'] ?? 0);
+            $comment_text = sanitize_string($data['comment_text'] ?? '');
+
+            if (!$activity_id || !$user_id || empty($comment_text)) {
+                http_response_code(400); echo json_encode(['error' => 'Missing required comment data']); exit;
+            }
+
+            $stmt = $pdo->prepare("INSERT INTO activity_comments (activity_id, user_id, comment_text) VALUES (?, ?, ?)");
+            $stmt->execute([$activity_id, $user_id, $comment_text]);
+            $comment_id = $pdo->lastInsertId();
+
+            $stmtFetch = $pdo->prepare("SELECT c.*, u.username, u.avatar_url FROM activity_comments c JOIN users u ON c.user_id = u.id WHERE c.id = ?");
+            $stmtFetch->execute([$comment_id]);
+            $newComment = $stmtFetch->fetch(PDO::FETCH_ASSOC);
+
+            echo json_encode(['success' => true, 'comment' => $newComment]);
             exit;
         }
 
@@ -1443,6 +1552,7 @@ try {
             $submission_id = get_int($data['submission_id'] ?? 0);
             $reviewer_id = get_int($data['reviewer_id'] ?? 0);
             $review_text = sanitize_string($data['review_text'] ?? '');
+            $review_audio_url = sanitize_string($data['review_audio_url'] ?? '');
             $markers = $data['markers'] ?? [];
             
             if (!$submission_id || !$reviewer_id) {
@@ -1451,8 +1561,8 @@ try {
 
             $pdo->beginTransaction();
             try {
-                $stmt = $pdo->prepare("INSERT INTO submission_reviews (submission_id, reviewer_id, review_text) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE reviewer_id=?, review_text=?");
-                $stmt->execute([$submission_id, $reviewer_id, $review_text, $reviewer_id, $review_text]);
+                $stmt = $pdo->prepare("INSERT INTO submission_reviews (submission_id, reviewer_id, review_text, review_audio_url) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE reviewer_id=?, review_text=?, review_audio_url=?");
+                $stmt->execute([$submission_id, $reviewer_id, $review_text, $review_audio_url, $reviewer_id, $review_text, $review_audio_url]);
                 
                 $stmtId = $pdo->prepare("SELECT id FROM submission_reviews WHERE submission_id = ?");
                 $stmtId->execute([$submission_id]);

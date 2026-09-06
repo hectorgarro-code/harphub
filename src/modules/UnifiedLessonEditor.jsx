@@ -515,6 +515,19 @@ const UnifiedLessonEditor = ({
                                 <Clock size={14} className="absolute right-5 top-4.5 text-slate-600" />
                             </div>
                         </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest">Visibilidad</label>
+                            <select 
+                                value={lesson.visibility || 'public'}
+                                onChange={e => setLesson({ ...lesson, visibility: e.target.value })}
+                                disabled={isPreview}
+                                className="w-full bg-slate-950 border border-white/5 rounded-2xl px-5 py-4 text-sm font-bold text-white outline-none focus:border-blue-500/50 transition-all appearance-none"
+                            >
+                                <option value="public">🌐 Pública (Comunidad)</option>
+                                <option value="unlisted">🔗 Solo con Enlace (Unlisted)</option>
+                                <option value="private">🔒 Privada (Solo tú)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </aside>

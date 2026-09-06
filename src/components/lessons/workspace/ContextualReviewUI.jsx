@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     ChevronLeft, Play, Pause, Plus, Trash2, Send, 
     MessageSquare, Clock, Music, User, Activity,
-    Save, CheckCircle
+    Save, CheckCircle, Mic
 } from 'lucide-react';
 import api from '../../../services/api';
+import { AudioRecorder } from '../../../utils/audioRecorder';
 
 export default function ContextualReviewUI({ submissionId, onBack, readOnly = false }) {
     const [submission, setSubmission] = useState(null);
@@ -14,10 +15,13 @@ export default function ContextualReviewUI({ submissionId, onBack, readOnly = fa
     const [isPlaying, setIsPlaying] = useState(false);
     const [markers, setMarkers] = useState([]);
     const [generalFeedback, setGeneralFeedback] = useState('');
+    const [voiceNoteUrl, setVoiceNoteUrl] = useState(null);
+    const [isRecordingVoice, setIsRecordingVoice] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     
     const audioRef = useRef(null);
     const timelineRef = useRef(null);
+    const voiceRecorderRef = useRef(new AudioRecorder());
 
     useEffect(() => {
         fetchSubmissionDetails();
@@ -88,7 +92,8 @@ export default function ContextualReviewUI({ submissionId, onBack, readOnly = fa
         try {
             const res = await api.request('submit_review', 'POST', {
                 submission_id: submissionId,
-                feedback: generalFeedback,
+                review_text: generalFeedback,
+                review_audio_url: voiceNoteUrl,
                 markers: markers.map(m => ({
                     timestamp: m.timestamp,
                     comment: m.comment
@@ -249,7 +254,45 @@ export default function ContextualReviewUI({ submissionId, onBack, readOnly = fa
 
                         {/* General Feedback Area */}
                         <div className="space-y-4">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Feedback General de la Sesión</label>
+                            <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Feedback General de la Sesión</label>
+                                {!readOnly && (
+                                    <button 
+                                        onClick={async () => {
+                                            if (isRecordingVoice) {
+                                                setIsRecordingVoice(false);
+                                                const res = await voiceRecorderRef.current.stop();
+                                                // Upload voice note
+                                                const formData = new FormData();
+                                                formData.append('action', 'upload_audio');
+                                                formData.append('audio', res.blob);
+                                                const uploadRes = await api.request('upload_audio', 'POST', formData);
+                                                if (uploadRes.success) setVoiceNoteUrl(uploadRes.url);
+                                            } else {
+                                                const ok = await voiceRecorderRef.current.start();
+                                                if (ok) setIsRecordingVoice(true);
+                                            }
+                                        }}
+                                        className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 transition ${isRecordingVoice ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-800 text-rose-400 border border-rose-500/20'}`}
+                                    >
+                                        <Mic size={14} />
+                                        {isRecordingVoice ? 'Detener Grabación de Voz' : 'Grabar Nota de Voz'}
+                                    </button>
+                                )}
+                            </div>
+
+                            {voiceNoteUrl && (
+                                <div className="p-4 bg-slate-900 rounded-2xl border border-rose-500/20 flex items-center gap-4">
+                                    <Mic size={20} className="text-rose-500" />
+                                    <audio src={voiceNoteUrl} controls className="h-8 flex-1" />
+                                    {!readOnly && (
+                                        <button onClick={() => setVoiceNoteUrl(null)} className="text-slate-500 hover:text-red-400 text-[10px] font-black uppercase">
+                                            Eliminar
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
                             <textarea 
                                 value={generalFeedback}
                                 onChange={(e) => setGeneralFeedback(e.target.value)}

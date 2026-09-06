@@ -115,40 +115,56 @@ const FeedCard = ({ activity, children, onPractice }) => {
                 </div>
 
                 {/* Actions Footer */}
-                <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <button 
-                            onClick={onPractice}
-                            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center gap-3 shadow-lg shadow-blue-900/40"
-                        >
-                            <Play size={14} fill="currentColor" /> Practicar Ahora
-                        </button>
-                        <button 
-                            onClick={() => handleAction('fork')}
-                            className="p-3 bg-slate-800/50 text-slate-400 hover:text-white rounded-2xl transition group-hover:bg-slate-800"
-                            title="Hacer un Remix"
-                        >
-                            <Repeat size={18} />
-                        </button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button 
-                            onClick={() => {
-                                setIsSaved(!isSaved);
-                                handleAction('toggle_save');
-                            }}
-                            className="p-3 text-slate-500 hover:text-white transition flex items-center gap-2"
-                            title="Guardar en favoritos"
-                        >
-                            <Bookmark size={18} className={isSaved ? 'fill-purple-500 text-purple-500' : ''} />
-                        </button>
-                        <button 
-                            onClick={() => handleAction('share')}
-                            className="p-3 text-slate-500 hover:text-white transition"
-                            title="Compartir"
-                        >
-                            <Share2 size={18} />
-                        </button>
+                <div className="mt-8 pt-6 border-t border-white/5 flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <button 
+                                onClick={onPractice}
+                                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-blue-900/40"
+                            >
+                                <Play size={14} fill="currentColor" /> Practicar
+                            </button>
+                            <button 
+                                onClick={() => handleAction('reaction_rhythm')}
+                                className="px-3 py-2 bg-slate-950/60 hover:bg-slate-800 text-amber-500 border border-white/5 rounded-xl font-black text-[9px] uppercase tracking-wider transition flex items-center gap-1.5"
+                                title="¡Gran Ritmo!"
+                            >
+                                🔥 Ritmo
+                            </button>
+                            <button 
+                                onClick={() => handleAction('reaction_tone')}
+                                className="px-3 py-2 bg-slate-950/60 hover:bg-slate-800 text-blue-400 border border-white/5 rounded-xl font-black text-[9px] uppercase tracking-wider transition flex items-center gap-1.5"
+                                title="¡Excelente Tono!"
+                            >
+                                🎸 Tono
+                            </button>
+                            <button 
+                                onClick={() => handleAction('reaction_jam')}
+                                className="px-3 py-2 bg-slate-950/60 hover:bg-slate-800 text-purple-400 border border-white/5 rounded-xl font-black text-[9px] uppercase tracking-wider transition flex items-center gap-1.5"
+                                title="¡Jam!"
+                            >
+                                🎷 Jam
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => {
+                                    setIsSaved(!isSaved);
+                                    handleAction('toggle_save');
+                                }}
+                                className="p-2.5 text-slate-500 hover:text-white transition flex items-center gap-2 bg-slate-950/40 rounded-xl border border-white/5"
+                                title="Guardar en favoritos"
+                            >
+                                <Bookmark size={16} className={isSaved ? 'fill-purple-500 text-purple-500' : ''} />
+                            </button>
+                            <button 
+                                onClick={() => handleAction('share')}
+                                className="p-2.5 text-slate-500 hover:text-white transition bg-slate-950/40 rounded-xl border border-white/5"
+                                title="Compartir"
+                            >
+                                <Share2 size={16} />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
