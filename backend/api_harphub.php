@@ -125,6 +125,16 @@ try {
     try { $pdo->exec("ALTER TABLE lessons ADD COLUMN practice_count INT DEFAULT 0"); } catch (PDOException $e) {}
     try { $pdo->exec("ALTER TABLE lessons ADD COLUMN save_count INT DEFAULT 0"); } catch (PDOException $e) {}
 
+    // Performance & Scalability Index Migrations
+    try { $pdo->exec("ALTER TABLE lessons ADD INDEX idx_lessons_user_id (user_id)"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE lessons ADD INDEX idx_lessons_visibility (visibility)"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE lessons ADD INDEX idx_lessons_category (category)"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE collections ADD INDEX idx_collections_user_id (user_id)"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE collection_lessons ADD INDEX idx_cl_lesson_id (lesson_id)"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE activities ADD INDEX idx_activities_user_id (user_id)"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE practice_submissions ADD INDEX idx_submissions_user_id (user_id)"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE learning_paths ADD INDEX idx_paths_creator_id (creator_id)"); } catch (PDOException $e) {}
+
     $pdo->exec("CREATE TABLE IF NOT EXISTS lesson_blocks (
         id INT AUTO_INCREMENT PRIMARY KEY,
         lesson_id INT NOT NULL,
