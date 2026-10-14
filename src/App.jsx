@@ -21,6 +21,7 @@ import LearningPathPage from './pages/LearningPathPage';
 import LearningPathBuilder from './pages/LearningPathBuilder';
 import LessonPage from './pages/LessonPage';
 import LibraryPage from './pages/LibraryPage';
+import HarmonicaTracksCatalog from './pages/HarmonicaTracksCatalog';
 import ReviewCenter from './pages/ReviewCenter';
 import LandingPage from './components/LandingPage';
 import LoginScreen from './components/LoginScreen';
@@ -132,7 +133,7 @@ export default function App() {
 
     if (!user) {
         if (showLanding) return <LandingPage onEnter={async () => {
-            await Tone.start();
+            await Tone.start().catch(() => {});
             setShowLanding(false);
         }} />;
         return (
@@ -172,6 +173,7 @@ export default function App() {
         >
             <Routes>
                 <Route path="/library" element={<LibraryPage />} />
+                <Route path="/tracks" element={<HarmonicaTracksCatalog />} />
                 <Route path="/profile/:username" element={<ProfilePage />} />
                 <Route path="/discovery" element={<DiscoveryPage />} />
                 <Route path="/learning-paths" element={<LearningPathsPage />} />

@@ -279,7 +279,7 @@ const LessonDashboardList = ({ items, setSelectedItem, patchItem, onAddLesson, f
                             <div className={`transition-all duration-700 ease-in-out overflow-hidden ${isOpen ? 'max-h-[20000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                                 <div className="p-4 lg:p-6 pt-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 lg:gap-6">
                                     {categoryItems.map((item) => {
-                                        const ytId = item.youtubeId && !isTikTokUrl(item.youtubeId) ? getYouTubeId(item.youtubeId) : null;
+                                        const ytId = item.youtubeId ? getYouTubeId(item.youtubeId) : null;
                                         
                                         return (
                                             <div
@@ -299,13 +299,6 @@ const LessonDashboardList = ({ items, setSelectedItem, patchItem, onAddLesson, f
                                                                 e.target.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=400&auto=format&fit=crop';
                                                             }}
                                                         />
-                                                    ) : isTikTokUrl(item.youtubeId) ? (
-                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 group-hover:bg-slate-800 transition-colors relative">
-                                                            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-rose-500/10 opacity-50" />
-                                                            <Music size={48} className="text-white opacity-20 mb-2 group-hover:scale-110 transition-transform relative z-10" />
-                                                            <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest relative z-10">TikTok Lesson</span>
-                                                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-gradient-to-r from-cyan-500 via-white to-rose-500 rounded-full opacity-30" />
-                                                        </div>
                                                     ) : item.gpFile ? (
                                                         <div className="w-full h-full flex flex-col items-center justify-center bg-blue-600/10 group-hover:bg-blue-600/20 transition-colors">
                                                             <Music size={48} className="text-blue-500/20 mb-2 group-hover:scale-110 transition-transform" />

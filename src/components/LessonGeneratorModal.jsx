@@ -29,8 +29,8 @@ const LessonGeneratorModal = ({
     const playerRef = useRef(null);
     const [ytReady, setYtReady] = useState(false);
     
-    // El previewId ahora viene directamente del estado global
-    const previewId = isTikTokUrl(newLessonYoutubeId) ? newLessonYoutubeId : getYouTubeId(newLessonYoutubeId);
+    // El previewId proviene de getYouTubeId
+    const previewId = getYouTubeId(newLessonYoutubeId) || newLessonYoutubeId;
 
     // Automatic metadata fetching (Title and Artist)
     useEffect(() => {
@@ -38,23 +38,14 @@ const LessonGeneratorModal = ({
 
         const fetchMetadata = async () => {
             try {
-                let fetchUrl = '';
-                if (isTikTokUrl(newLessonYoutubeId)) {
-                    fetchUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(newLessonYoutubeId)}`;
-                } else {
-                    const ytId = getYouTubeId(newLessonYoutubeId);
-                    if (ytId) {
-                        fetchUrl = `https://noembed.com/embed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${ytId}`)}`;
-                    }
-                }
-
-                if (fetchUrl) {
+                const ytId = getYouTubeId(newLessonYoutubeId);
+                if (ytId) {
+                    const fetchUrl = `https://noembed.com/embed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${ytId}`)}`;
                     const res = await fetch(fetchUrl);
                     const data = await res.json();
                     
                     // Solo autocompletar si los campos están vacíos
                     if (data.title && !newLessonTitle) {
-                        // Clean titles (remove | YouTube, etc if needed, but let's keep it simple)
                         setNewLessonTitle(data.title);
                     }
                     if (data.author_name && !newLessonArtist) {

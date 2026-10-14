@@ -40,6 +40,12 @@ const Sidebar = ({
 
     const isExpanded = isSidebarOpen || isHovered;
 
+    const handleCloseMobile = () => {
+        if (window.innerWidth < 1024 && setIsSidebarOpen) {
+            setIsSidebarOpen(false);
+        }
+    };
+
     return (
         <aside 
             className={`${isExpanded ? 'w-full lg:w-72' : 'w-20'} h-full transition-all duration-500 ease-in-out bg-slate-900 border-r border-slate-800 flex flex-col z-50 shadow-2xl relative group/sidebar`}
@@ -53,7 +59,7 @@ const Sidebar = ({
             </button>
 
             <div className={`p-6 border-b border-slate-800 flex items-center transition-all duration-500 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
-                <Link to="/" className="flex items-center gap-4 group" title="HarpHub Dashboard">
+                <Link to="/" onClick={handleCloseMobile} className="flex items-center gap-4 group" title="HarpHub Dashboard">
                     <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-900/40 group-hover:scale-110 transition-transform duration-500">
                         <Mic2 size={22} strokeWidth={2.5} />
                     </div>
@@ -78,6 +84,7 @@ const Sidebar = ({
                         <span className="text-sm font-black text-white leading-tight truncate uppercase tracking-tight">{user.username}</span>
                         <Link 
                             to={`/profile/${user.username}`}
+                            onClick={handleCloseMobile}
                             className="text-[9px] text-blue-400 uppercase tracking-[0.15em] font-black leading-tight truncate hover:text-white transition flex items-center gap-1 mt-0.5"
                         >
                             Perfil <ChevronRight size={8} />
@@ -111,24 +118,25 @@ const Sidebar = ({
             </div>
 
             <nav className="flex-1 p-4 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar pb-24">
-                <NavItem to="/library" icon={Layout} label="Mis Lecciones" color="slate" isExpanded={isExpanded} />
-                <NavItem to="/learning-paths" icon={Map} label="Rutas" color="purple" isExpanded={isExpanded} />
-                <NavItem to="/discovery" icon={Compass} label="Explorar" color="emerald" isExpanded={isExpanded} />
-                <NavItem to="/review-center" icon={GraduationCap} label="Revisión" color="rose" isExpanded={isExpanded} />
-                <NavItem to="/" icon={Activity} label="Comunidad" color="blue" isExpanded={isExpanded} />
+                <NavItem to="/library" icon={Layout} label="Mis Lecciones" color="slate" isExpanded={isExpanded} onClick={handleCloseMobile} />
+                <NavItem to="/tracks" icon={Headphones} label="Temas por Tonalidad" color="amber" isExpanded={isExpanded} onClick={handleCloseMobile} />
+                <NavItem to="/learning-paths" icon={Map} label="Rutas" color="purple" isExpanded={isExpanded} onClick={handleCloseMobile} />
+                <NavItem to="/discovery" icon={Compass} label="Explorar" color="emerald" isExpanded={isExpanded} onClick={handleCloseMobile} />
+                <NavItem to="/review-center" icon={GraduationCap} label="Revisión" color="rose" isExpanded={isExpanded} onClick={handleCloseMobile} />
+                <NavItem to="/" icon={Activity} label="Comunidad" color="blue" isExpanded={isExpanded} onClick={handleCloseMobile} />
 
                 <div className="pt-4 mt-2 border-t border-slate-800 space-y-2">
-                    <NavButton onClick={() => setIsBluesMasterOpen(true)} icon={Layers} label="Blues Master" color="indigo" isExpanded={isExpanded} />
-                    <NavButton onClick={() => setIsGuitarMasterOpen(true)} icon={Hash} label="Guitar Master" color="blue" isExpanded={isExpanded} />
-                    <NavButton onClick={() => setIsPianoMasterOpen(true)} icon={Music} label="Piano Master" color="purple" isExpanded={isExpanded} />
-                    <NavButton onClick={() => setIsUkeleleMasterOpen(true)} icon={Music} label="Ukelele Master" color="emerald" isExpanded={isExpanded} />
-                    <NavButton onClick={() => setIsMidiSettingsOpen(true)} icon={Piano} label="Config MIDI" color="blue" isExpanded={isExpanded} />
+                    <NavButton onClick={() => setIsBluesMasterOpen(true)} onCloseMobile={handleCloseMobile} icon={Layers} label="Blues Master" color="indigo" isExpanded={isExpanded} />
+                    <NavButton onClick={() => setIsGuitarMasterOpen(true)} onCloseMobile={handleCloseMobile} icon={Hash} label="Guitar Master" color="blue" isExpanded={isExpanded} />
+                    <NavButton onClick={() => setIsPianoMasterOpen(true)} onCloseMobile={handleCloseMobile} icon={Music} label="Piano Master" color="purple" isExpanded={isExpanded} />
+                    <NavButton onClick={() => setIsUkeleleMasterOpen(true)} onCloseMobile={handleCloseMobile} icon={Music} label="Ukelele Master" color="emerald" isExpanded={isExpanded} />
+                    <NavButton onClick={() => setIsMidiSettingsOpen(true)} onCloseMobile={handleCloseMobile} icon={Piano} label="Config MIDI" color="blue" isExpanded={isExpanded} />
 
-                    <NavButton onClick={() => setIsBluesDegreeOpen(true)} icon={GraduationCap} label="Blues Degree" color="rose" isExpanded={isExpanded} />
-                    <NavButton onClick={() => setIsRoutineOpen(true)} icon={Timer} label="Rutina Diaria" color="amber" isExpanded={isExpanded} />
-                    <NavButton onClick={() => setIsTabEditorOpen(true)} icon={Edit3} label="Editor Tabs" color="blue" isExpanded={isExpanded} />
-                    <NavButton onClick={() => setIsKeyToolOpen(true)} icon={Search} label="Detector" color="emerald" isExpanded={isExpanded} />
-                    <NavButton onClick={() => setIsTunerOpen(true)} icon={Gauge} label="Afinador" color="blue" isExpanded={isExpanded} />
+                    <NavButton onClick={() => setIsBluesDegreeOpen(true)} onCloseMobile={handleCloseMobile} icon={GraduationCap} label="Blues Degree" color="rose" isExpanded={isExpanded} />
+                    <NavButton onClick={() => setIsRoutineOpen(true)} onCloseMobile={handleCloseMobile} icon={Timer} label="Rutina Diaria" color="amber" isExpanded={isExpanded} />
+                    <NavButton onClick={() => setIsTabEditorOpen(true)} onCloseMobile={handleCloseMobile} icon={Edit3} label="Editor Tabs" color="blue" isExpanded={isExpanded} />
+                    <NavButton onClick={() => setIsKeyToolOpen(true)} onCloseMobile={handleCloseMobile} icon={Search} label="Detector" color="emerald" isExpanded={isExpanded} />
+                    <NavButton onClick={() => setIsTunerOpen(true)} onCloseMobile={handleCloseMobile} icon={Gauge} label="Afinador" color="blue" isExpanded={isExpanded} />
                 </div>
 
                 {recordings && recordings.length > 0 && (
@@ -140,6 +148,7 @@ const Sidebar = ({
                                     key={i}
                                     href={rec.url}
                                     download={rec.filename}
+                                    onClick={handleCloseMobile}
                                     className={`w-full flex items-center transition-all duration-500 rounded-2xl overflow-hidden ${isExpanded ? 'gap-4 px-4 h-14' : 'justify-center h-12'} bg-slate-950 border border-slate-800 hover:bg-slate-800 transition group/rec`}
                                 >
                                     <Headphones size={18} className="text-rose-500 shrink-0 group-hover/rec:scale-110 transition" />
@@ -164,9 +173,10 @@ const Sidebar = ({
 };
 
 // Helper Components for cleaner code
-const NavItem = ({ to, icon: Icon, label, color, isExpanded }) => (
+const NavItem = ({ to, icon: Icon, label, color, isExpanded, onClick }) => (
     <Link 
         to={to} 
+        onClick={onClick}
         title={label}
         className={`w-full flex items-center transition-all duration-500 rounded-2xl group/nav ${isExpanded ? 'gap-4 px-4 h-14 bg-slate-800/10' : 'justify-center h-12 bg-transparent'} border border-white/0 hover:border-white/5 hover:bg-slate-800/30 text-slate-400 hover:text-white`}
     >
@@ -179,9 +189,12 @@ const NavItem = ({ to, icon: Icon, label, color, isExpanded }) => (
     </Link>
 );
 
-const NavButton = ({ onClick, icon: Icon, label, color, isExpanded }) => (
+const NavButton = ({ onClick, icon: Icon, label, color, isExpanded, onCloseMobile }) => (
     <button 
-        onClick={onClick}
+        onClick={(e) => {
+            onClick?.(e);
+            onCloseMobile?.();
+        }}
         title={label}
         className={`w-full flex items-center transition-all duration-500 rounded-2xl group/nav ${isExpanded ? 'gap-4 px-4 h-14 bg-slate-800/10' : 'justify-center h-12 bg-transparent'} border border-white/0 hover:border-white/5 hover:bg-slate-800/30 text-slate-400 hover:text-white`}
     >

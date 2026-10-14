@@ -49,39 +49,56 @@ export const ROUTINE_STEPS = [
 ];
 
 export const isTikTokUrl = (url) => {
-    if (!url) return false;
-    return url.includes('tiktok.com');
+    return false; // Todos los enlaces se interpretan como video de YouTube
 };
 
 export const getTikTokId = (url) => {
-    if (!url) return '';
-    // Handle standard tiktok url: https://www.tiktok.com/@username/video/7182...
-    const match = url.match(/video\/(\d+)/);
-    return match ? match[1] : url;
+    return getYouTubeId(url);
 };
-
 
 export const getYouTubeId = (url) => {
     if (!url) return '';
     const trimmed = String(url).trim();
-    if (trimmed.length === 11 && !trimmed.includes('/') && !trimmed.includes('?') && !trimmed.includes(':')) return trimmed; // Ya es un ID de 11 caracteres
     
-    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    // Si ya es un ID de 11 caracteres (sin / ? : .)
+    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+        return trimmed;
+    }
+    
+    // 1. YouTube Shorts (ej: youtube.com/shorts/VIDEO_ID o m.youtube.com/shorts/VIDEO_ID)
+    const shortsMatch = trimmed.match(/(?:youtube\.com\/shorts\/|m\.youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/i);
+    if (shortsMatch && shortsMatch[1]) {
+        return shortsMatch[1];
+    }
+
+    // 2. YouTube Standard, Embed, watch o short link (youtu.be)
+    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i;
     const match = trimmed.match(regExp);
     if (match && match[1]) {
         return match[1];
     }
-    
+
+    // 3. Extracción vía objeto URL
     try {
-        const urlObj = new URL(trimmed);
-        if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
-            const v = urlObj.searchParams.get('v');
-            if (v && v.length === 11) return v;
-            const pathParts = urlObj.pathname.split('/').filter(Boolean);
-            const lastPart = pathParts[pathParts.length - 1];
-            if (lastPart && lastPart.length === 11) return lastPart;
+        const urlStr = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+        const urlObj = new URL(urlStr);
+        const v = urlObj.searchParams.get('v');
+        if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+
+        const pathParts = urlObj.pathname.split('/').filter(Boolean);
+        for (let i = pathParts.length - 1; i >= 0; i--) {
+            const part = pathParts[i];
+            if (/^[a-zA-Z0-9_-]{11}$/.test(part)) {
+                return part;
+            }
         }
     } catch (e) {}
+
+    // 4. Fallback final: Buscar cualquier secuencia de 11 caracteres alfanuméricos/guiones
+    const generic11Match = trimmed.match(/([a-zA-Z0-9_-]{11})/);
+    if (generic11Match && generic11Match[1]) {
+        return generic11Match[1];
+    }
 
     return '';
 };

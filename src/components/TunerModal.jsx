@@ -27,7 +27,7 @@ const TunerModal = ({ onClose }) => {
                 const ctx = new AudioContext();
                 
                 if (ctx.state === 'suspended') {
-                    await ctx.resume();
+                    await ctx.resume().catch(() => {});
                 }
                 
                 audioCtxRef.current = ctx;

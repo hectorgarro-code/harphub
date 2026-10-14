@@ -49,7 +49,7 @@ const GuitarTunerModal = ({ isOpen, onClose }) => {
                 
                 // Ensure context is resumed if created in a suspended state
                 if (ctx.state === 'suspended') {
-                    await ctx.resume();
+                    await ctx.resume().catch(() => {});
                 }
                 
                 audioCtxRef.current = ctx;
@@ -128,7 +128,7 @@ const GuitarTunerModal = ({ isOpen, onClose }) => {
     }, [isOpen]);
 
     const playTuningNote = (note, label) => {
-        if (Tone.context.state !== 'running') Tone.start();
+        if (Tone.context.state !== 'running') Tone.start().catch(() => {});
         setActiveTuningNote(label);
         setTimeout(() => setActiveTuningNote(null), 1000);
         synthRef.current.triggerAttackRelease(note, "2n");

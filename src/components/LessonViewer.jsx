@@ -145,7 +145,7 @@ const LessonViewer = ({
     };
 
     useEffect(() => {
-        if (!selectedItem || !selectedItem.youtubeId || isTikTokUrl(selectedItem.youtubeId)) return;
+        if (!selectedItem || !selectedItem.youtubeId) return;
 
         if (playerRef.current) {
             try {
@@ -195,7 +195,7 @@ const LessonViewer = ({
     }, [selectedItem?.id, selectedItem?.youtubeId]);
 
     const handleBookmarkClick = (seconds) => {
-        if (!selectedItem?.id || isTikTokUrl(selectedItem?.youtubeId)) return;
+        if (!selectedItem?.id) return;
         
         if (playerRef.current && playerRef.current.seekTo) {
             playerRef.current.seekTo(seconds, true);
@@ -344,35 +344,27 @@ const LessonViewer = ({
                             </div>
                         ) : selectedItem.youtubeId ? (
                             <div className="w-full h-full flex flex-col">
-                                <div className="bg-black w-full relative shrink-0" style={{ height: isTikTokUrl(selectedItem.youtubeId) ? '700px' : 'auto', aspectRatio: isTikTokUrl(selectedItem.youtubeId) ? 'auto' : '16/9' }} id="yt-container">
-                                    {isTikTokUrl(selectedItem.youtubeId) ? (
-                                        <iframe src={`https://www.tiktok.com/embed/v2/${getTikTokId(selectedItem.youtubeId)}`} width="100%" height="100%" frameBorder="0" allow="fullscreen" className="rounded-t-[2.5rem]"></iframe>
-                                    ) : (
-                                        <iframe id={`yt-player-${selectedItem.id}`} width="100%" height="100%" src={`https://www.youtube.com/embed/${getYouTubeId(selectedItem.youtubeId)}?enablejsapi=1&origin=${window.location.origin}`} frameBorder="0" allowFullScreen></iframe>
-                                    )}
+                                <div className="bg-black w-full relative shrink-0 aspect-video" id="yt-container">
+                                    <iframe id={`yt-player-${selectedItem.id}`} width="100%" height="100%" src={`https://www.youtube.com/embed/${getYouTubeId(selectedItem.youtubeId)}?enablejsapi=1&origin=${window.location.origin}`} frameBorder="0" allowFullScreen></iframe>
                                     
                                     {/* Botón flotante para añadir marcador */}
-                                    {!isTikTokUrl(selectedItem.youtubeId) && (
-                                        <button 
-                                            onClick={addMarker}
-                                            className="absolute bottom-6 right-6 bg-amber-500 text-slate-950 p-4 rounded-2xl shadow-xl shadow-amber-500/30 hover:scale-110 active:scale-95 transition-all opacity-0 group-hover:opacity-100 z-10 font-black flex items-center gap-3"
-                                        >
-                                            <MapPin size={20} fill="currentColor" />
-                                            <span className="text-xs uppercase tracking-widest">Marcar Punto</span>
-                                        </button>
-                                    )}
+                                    <button 
+                                        onClick={addMarker}
+                                        className="absolute bottom-6 right-6 bg-amber-500 text-slate-950 p-4 rounded-2xl shadow-xl shadow-amber-500/30 hover:scale-110 active:scale-95 transition-all opacity-0 group-hover:opacity-100 z-10 font-black flex items-center gap-3"
+                                    >
+                                        <MapPin size={20} fill="currentColor" />
+                                        <span className="text-xs uppercase tracking-widest">Marcar Punto</span>
+                                    </button>
                                 </div>
-                                {!isTikTokUrl(selectedItem.youtubeId) && (
-                                    <div className="flex items-center gap-2 p-4 bg-slate-950/50 border-t border-slate-800 shrink-0 overflow-x-auto custom-scrollbar">
-                                        <Gauge size={14} className="text-slate-500 ml-2 shrink-0" />
-                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2 shrink-0">Velocidad:</span>
+                                <div className="flex items-center gap-2 p-4 bg-slate-950/50 border-t border-slate-800 shrink-0 overflow-x-auto custom-scrollbar">
+                                    <Gauge size={14} className="text-slate-500 ml-2 shrink-0" />
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2 shrink-0">Velocidad:</span>
                                         {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 2].map(rate => (
                                             <button key={rate} onClick={() => updatePlaybackRate(rate)} className={`py-1.5 px-3 text-[10px] font-bold rounded-xl transition whitespace-nowrap ${playbackRate === rate ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                                                 {rate}x
                                             </button>
                                         ))}
                                     </div>
-                                )}
                             </div>
                         ) : (
                             <div className="aspect-video bg-slate-950 flex flex-col items-center justify-center p-8 relative">

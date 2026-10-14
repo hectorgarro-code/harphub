@@ -75,8 +75,7 @@ export default function AlphaTabPlayer({ fileUrl, onReady, settings: externalSet
             file: absoluteFileUrl,
             core: {
                 fontDirectory: 'https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/font/',
-                // Use CDN to avoid local MIME type issues with workers in Vite
-                scriptFile: 'https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/alphaTab.js'
+                scriptFile: './assets/alphaTab.worker.mjs'
             },
             player: {
                 enablePlayer: true,
@@ -300,7 +299,7 @@ export default function AlphaTabPlayer({ fileUrl, onReady, settings: externalSet
 
         // Ensure AudioContext is resumed on user gesture
         if (customAudioCtxRef.current && customAudioCtxRef.current.state === 'suspended') {
-            await customAudioCtxRef.current.resume();
+            await customAudioCtxRef.current.resume().catch(() => {});
         }
 
         apiRef.current.playPause();
@@ -333,7 +332,7 @@ export default function AlphaTabPlayer({ fileUrl, onReady, settings: externalSet
 
                 // WebAudio requires resume if suspended
                 if (customAudioCtxRef.current.state === 'suspended') {
-                    await customAudioCtxRef.current.resume();
+                    await customAudioCtxRef.current.resume().catch(() => {});
                 }
 
                 micStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });

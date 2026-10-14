@@ -191,7 +191,7 @@ const UnifiedLessonEditor = ({
             
             // Si el primer bloque es video, usar su URL para el youtubeId principal
             const videoBlock = lesson.blocks.find(b => b.type === 'video');
-            const cleanYtId = videoBlock ? (isTikTokUrl(videoBlock.content.url) ? videoBlock.content.url : getYouTubeId(videoBlock.content.url)) : lesson.youtubeId;
+            const cleanYtId = videoBlock ? getYouTubeId(videoBlock.content.url) : getYouTubeId(lesson.youtubeId);
 
             formData.append('title', lesson.title);
             formData.append('artist', lesson.artist);

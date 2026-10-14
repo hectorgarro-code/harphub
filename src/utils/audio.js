@@ -11,7 +11,7 @@ export const getAudioContext = () => {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        audioCtx.resume().catch(() => {});
     }
     return audioCtx;
 };
