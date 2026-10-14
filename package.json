@@ -26,7 +26,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/copy-alphatab.js",
+    "prebuild": "node scripts/copy-alphatab.js && node scripts/generate-icons.js",
     "build": "vite build",
     "postinstall": "node scripts/copy-alphatab.js",
     "preview": "vite preview"

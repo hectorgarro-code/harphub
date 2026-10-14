@@ -22,10 +22,33 @@
     <meta property="twitter:description" content="Centraliza tus tabs, videos y teoría musical. Potencia tu estudio con herramientas profesionales de Blues." />
     <meta property="twitter:image" content="/assets/hero-bg.png" />
 
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- PWA & Mobile Capabilities -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="HarpHub" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="alternate icon" type="image/png" href="/icon-192.png" />
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // PWA Service Worker Registration & Install Prompt Capture
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch((err) => {
+            console.warn('ServiceWorker registration error:', err);
+          });
+        });
+      }
+      window.addEventListener('beforeinstallprompt', (e) => {
+        window.deferredPWAInstallPrompt = e;
+        window.dispatchEvent(new CustomEvent('pwa-installable'));
+      });
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

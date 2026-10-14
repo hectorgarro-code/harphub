@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     Mic2, LogOut, Zap, Timer, Trophy, Layout, Edit3,
-    Search, Gauge, Layers, Square, Circle, Plus, ChevronLeft, ChevronRight, Menu, Headphones, Disc, GraduationCap, X, Info, Hash, Music, Piano, Activity, Folder, Compass, Map
+    Search, Gauge, Layers, Square, Circle, Plus, ChevronLeft, ChevronRight, Menu, Headphones, Disc, GraduationCap, X, Info, Hash, Music, Piano, Activity, Folder, Compass, Map, Download
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -38,7 +38,26 @@ const Sidebar = ({
 
     if (!user) return null;
 
-    const isExpanded = isSidebarOpen || isHovered;
+    const [canInstall, setCanInstall] = React.useState(typeof window !== 'undefined' && !!window.deferredPWAInstallPrompt);
+
+    React.useEffect(() => {
+        const handleInstallable = () => setCanInstall(true);
+        window.addEventListener('pwa-installable', handleInstallable);
+        return () => window.removeEventListener('pwa-installable', handleInstallable);
+    }, []);
+
+    const handleInstallPWA = async () => {
+        if (typeof window !== 'undefined' && window.deferredPWAInstallPrompt) {
+            window.deferredPWAInstallPrompt.prompt();
+            const { outcome } = await window.deferredPWAInstallPrompt.userChoice;
+            if (outcome === 'accepted') {
+                setCanInstall(false);
+                window.deferredPWAInstallPrompt = null;
+            }
+        } else {
+            alert('Para instalar HarpHub en tu escritorio:\n1. Revisa la barra de direcciones de Chrome arriba a la derecha.\n2. Haz clic en el icono "Instalar HarpHub" o en el menú de Chrome (tres puntos) > "Guardar y compartir" > "Instalar HarpHub".');
+        }
+    };
 
     const handleCloseMobile = () => {
         if (window.innerWidth < 1024 && setIsSidebarOpen) {
@@ -137,6 +156,7 @@ const Sidebar = ({
                     <NavButton onClick={() => setIsTabEditorOpen(true)} onCloseMobile={handleCloseMobile} icon={Edit3} label="Editor Tabs" color="blue" isExpanded={isExpanded} />
                     <NavButton onClick={() => setIsKeyToolOpen(true)} onCloseMobile={handleCloseMobile} icon={Search} label="Detector" color="emerald" isExpanded={isExpanded} />
                     <NavButton onClick={() => setIsTunerOpen(true)} onCloseMobile={handleCloseMobile} icon={Gauge} label="Afinador" color="blue" isExpanded={isExpanded} />
+                    <NavButton onClick={handleInstallPWA} onCloseMobile={handleCloseMobile} icon={Download} label="Instalar App" color="emerald" isExpanded={isExpanded} />
                 </div>
 
                 {recordings && recordings.length > 0 && (
