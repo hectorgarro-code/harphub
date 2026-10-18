@@ -575,7 +575,8 @@ export default function HarmonicaTracksCatalog() {
                                             autoplay: 1,
                                             controls: 1,
                                             modestbranding: 1,
-                                            rel: 0
+                                            rel: 0,
+                                            origin: typeof window !== 'undefined' ? window.location.origin : undefined
                                         }
                                     }}
                                 />

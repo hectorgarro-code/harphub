@@ -10,9 +10,16 @@ import { getTheoryNoteName } from '../../music/theory';
 const GlobalMidiSound = () => {
     const { lastEvent, synthPreset, isBluesMasterActive } = useMidi();
     const synthRef = useRef(null);
+    const fxRef = useRef([]);
 
-    // Re-initialize Global Synth when preset or FX state changes
-    useEffect(() => {
+    const setupSynth = () => {
+        if (synthRef.current) {
+            synthRef.current.dispose();
+            synthRef.current = null;
+        }
+        fxRef.current.forEach(fx => fx.dispose());
+        fxRef.current = [];
+
         let activeSynth;
         let activeFX = [];
 
@@ -21,12 +28,9 @@ const GlobalMidiSound = () => {
         activeFX.push(reverb);
 
         // Blues Master FX (EQ & Overdrive)
-        let bluesDistortion = null;
-        let bluesEq = null;
-
         if (isBluesMasterActive) {
-            bluesDistortion = new Tone.Distortion({ distortion: 0.2, oversample: '2x' });
-            bluesEq = new Tone.EQ3({ low: 2, mid: 3, high: 1 });
+            const bluesDistortion = new Tone.Distortion({ distortion: 0.2, oversample: '2x' });
+            const bluesEq = new Tone.EQ3({ low: 2, mid: 3, high: 1 });
             activeFX.push(bluesDistortion, bluesEq);
         }
 
@@ -64,32 +68,47 @@ const GlobalMidiSound = () => {
 
         // Chain effects
         if (activeFX.length > 0) {
-            activeSynth.chain(...activeFX.reverse()); // Reverse to put reverb at the end
+            activeSynth.chain(...activeFX.reverse());
         } else {
             activeSynth.toDestination();
         }
 
         synthRef.current = activeSynth;
+        fxRef.current = activeFX;
+    };
 
+    // Re-initialize Global Synth when preset or FX state changes (only if already instantiated or audio active)
+    useEffect(() => {
+        if (Tone.getContext().state === 'running' || synthRef.current) {
+            setupSynth();
+        }
         return () => {
-            activeSynth.dispose();
-            activeFX.forEach(fx => fx.dispose());
+            if (synthRef.current) {
+                synthRef.current.dispose();
+                synthRef.current = null;
+            }
+            fxRef.current.forEach(fx => fx.dispose());
+            fxRef.current = [];
         };
     }, [synthPreset, isBluesMasterActive]);
 
     // Listen to MIDI events globally
     useEffect(() => {
-        if (!lastEvent || !synthRef.current) return;
+        if (!lastEvent) return;
+
+        if (!synthRef.current) {
+            setupSynth();
+        }
 
         const freq = Tone.Frequency(lastEvent.note, "midi").toFrequency();
 
         if (lastEvent.type === 'noteon') {
             if (Tone.getContext().state === 'running') {
-                synthRef.current.triggerAttack(freq, Tone.now(), lastEvent.velocity || 0.8);
+                synthRef.current?.triggerAttack(freq, Tone.now(), lastEvent.velocity || 0.8);
             }
         } else if (lastEvent.type === 'noteoff') {
             if (Tone.getContext().state === 'running') {
-                synthRef.current.triggerRelease(freq, Tone.now());
+                synthRef.current?.triggerRelease(freq, Tone.now());
             }
         }
     }, [lastEvent]);

@@ -188,6 +188,14 @@ export default function App() {
                         setIsUkeleleMasterOpen={setIsUkeleleMasterOpen}
                     />
                 } />
+                <Route path="/feed" element={
+                    <FeedPage 
+                        setIsBluesMasterOpen={setIsBluesMasterOpen}
+                        setIsPianoMasterOpen={setIsPianoMasterOpen}
+                        setIsGuitarMasterOpen={setIsGuitarMasterOpen}
+                        setIsUkeleleMasterOpen={setIsUkeleleMasterOpen}
+                    />
+                } />
                 <Route path="/review-center" element={<ReviewCenter />} />
                 <Route path="/lesson/:id" element={
                     <LessonPage 

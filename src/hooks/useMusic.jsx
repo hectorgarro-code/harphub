@@ -36,35 +36,42 @@ export function MusicProvider({ children }) {
     const drumSnares = useRef(null);
     const drumHats = useRef(null);
 
+    const initSynths = () => {
+        if (!clickSynth.current) {
+            clickSynth.current = new Tone.MembraneSynth({
+                pitchDecay: 0.05,
+                octaves: 2,
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.1 }
+            }).toDestination();
+        }
+        if (!drumKicks.current) {
+            drumKicks.current = new Tone.MembraneSynth({
+                pitchDecay: 0.05,
+                octaves: 4,
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4 }
+            }).toDestination();
+        }
+        if (!drumSnares.current) {
+            drumSnares.current = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+            }).toDestination();
+        }
+        if (!drumHats.current) {
+            drumHats.current = new Tone.MetalSynth({
+                frequency: 200,
+                envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
+                harmonicity: 5.1,
+                modulationIndex: 32,
+                resonance: 4000,
+                octaves: 1.5
+            }).toDestination();
+        }
+    };
+
     useEffect(() => {
-        clickSynth.current = new Tone.MembraneSynth({
-            pitchDecay: 0.05,
-            octaves: 2,
-            oscillator: { type: 'sine' },
-            envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.1 }
-        }).toDestination();
-
-        drumKicks.current = new Tone.MembraneSynth({
-            pitchDecay: 0.05,
-            octaves: 4,
-            oscillator: { type: 'sine' },
-            envelope: { attack: 0.001, decay: 0.4, sustain: 0.01, release: 1.4 }
-        }).toDestination();
-
-        drumSnares.current = new Tone.NoiseSynth({
-            noise: { type: 'white' },
-            envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
-        }).toDestination();
-
-        drumHats.current = new Tone.MetalSynth({
-            frequency: 200,
-            envelope: { attack: 0.001, decay: 0.1, release: 0.01 },
-            harmonicity: 5.1,
-            modulationIndex: 32,
-            resonance: 4000,
-            octaves: 1.5
-        }).toDestination();
-
         return () => {
             [clickSynth, drumKicks, drumSnares, drumHats].forEach(ref => ref.current?.dispose());
         };
@@ -76,6 +83,7 @@ export function MusicProvider({ children }) {
 
     useEffect(() => {
         if (isMetroOn) {
+            initSynths();
             if (Tone.getContext().state !== 'running') {
                 Tone.start().catch(() => {});
             }
