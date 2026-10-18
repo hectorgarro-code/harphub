@@ -38,6 +38,8 @@ const Sidebar = ({
 
     if (!user) return null;
 
+    const isExpanded = isSidebarOpen || isHovered;
+
     const [canInstall, setCanInstall] = React.useState(typeof window !== 'undefined' && !!window.deferredPWAInstallPrompt);
 
     React.useEffect(() => {
