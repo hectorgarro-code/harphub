@@ -98,6 +98,79 @@ const UnifiedLessonEditor = ({
     const [selectedGpFile, setSelectedGpFile] = useState(null);
     const [selectedAttachments, setSelectedAttachments] = useState([]);
 
+    // Helper para generar los bloques por defecto con los datos de la lección
+    const createStandardBlocks = (item = {}) => {
+        let parsedBookmarks = [];
+        try {
+            if (item.video_bookmarks) {
+                parsedBookmarks = typeof item.video_bookmarks === 'string'
+                    ? JSON.parse(item.video_bookmarks)
+                    : item.video_bookmarks;
+                if (!Array.isArray(parsedBookmarks)) parsedBookmarks = [];
+            }
+        } catch (e) {}
+
+        const now = Date.now();
+        return [
+            {
+                id: `video_${now}_0`,
+                type: 'video',
+                title: 'Video Tutorial',
+                description: '',
+                content: {
+                    url: item.youtubeId || '',
+                    artist: item.artist || '',
+                    bookmarks: parsedBookmarks,
+                    speed: 1,
+                    loop: false,
+                    duration: item.duration || ''
+                },
+                links: [],
+                attachments: [],
+                isLoading: false
+            },
+            {
+                id: `gp-tab_${now}_1`,
+                type: 'gp-tab',
+                title: 'Partitura AlphaTab / GP',
+                description: '',
+                content: {
+                    url: item.gpFile || '',
+                    fileName: item.gpFile ? item.gpFile.split('/').pop() : ''
+                },
+                links: [],
+                attachments: [],
+                isLoading: false
+            },
+            {
+                id: `sea-tab_${now}_2`,
+                type: 'sea-tab',
+                title: 'Tablatura SEA',
+                description: '',
+                content: {
+                    code: item.practiceTab || '',
+                    bpm: 100,
+                    measures: 4
+                },
+                links: [],
+                attachments: [],
+                isLoading: false
+            },
+            {
+                id: `notes_${now}_3`,
+                type: 'notes',
+                title: 'Notas de Estudio',
+                description: '',
+                content: {
+                    text: item.personal_notes || item.description || ''
+                },
+                links: [],
+                attachments: [],
+                isLoading: false
+            }
+        ];
+    };
+
     // --- CARGA DE DATOS ---
     useEffect(() => {
         if (selectedItem) {
@@ -106,9 +179,69 @@ const UnifiedLessonEditor = ({
                 const config = typeof selectedItem.workspace_config === 'string' 
                     ? JSON.parse(selectedItem.workspace_config) 
                     : (selectedItem.workspace_config || {});
-                blocks = config.webBlocks || [];
+                blocks = Array.isArray(config.webBlocks) ? config.webBlocks : [];
             } catch (e) {
                 console.error("Error parsing workspace_config:", e);
+            }
+
+            // Si la lección no tiene bloques en workspace_config, sintetizar los bloques estándar
+            if (!blocks || blocks.length === 0) {
+                blocks = createStandardBlocks(selectedItem);
+            } else {
+                // Si ya tiene bloques, asegurar hidratación con los datos actuales de la lección
+                const hasVideo = blocks.some(b => b.type === 'video');
+                const hasNotes = blocks.some(b => b.type === 'notes');
+
+                blocks = blocks.map(b => {
+                    if (b.type === 'video' && !b.content?.url && selectedItem.youtubeId) {
+                        return { ...b, content: { ...(b.content || {}), url: selectedItem.youtubeId } };
+                    }
+                    if (b.type === 'gp-tab' && !b.content?.url && selectedItem.gpFile) {
+                        return { ...b, content: { ...(b.content || {}), url: selectedItem.gpFile, fileName: selectedItem.gpFile.split('/').pop() } };
+                    }
+                    if (b.type === 'sea-tab' && !b.content?.code && selectedItem.practiceTab) {
+                        return { ...b, content: { ...(b.content || {}), code: selectedItem.practiceTab } };
+                    }
+                    if (b.type === 'notes' && !b.content?.text && (selectedItem.personal_notes || selectedItem.description)) {
+                        return { ...b, content: { ...(b.content || {}), text: selectedItem.personal_notes || selectedItem.description } };
+                    }
+                    return b;
+                });
+
+                if (!hasVideo) {
+                    blocks.unshift({
+                        id: `video_${Date.now()}_0`,
+                        type: 'video',
+                        title: 'Video Tutorial',
+                        description: '',
+                        content: {
+                            url: selectedItem.youtubeId || '',
+                            artist: selectedItem.artist || '',
+                            bookmarks: [],
+                            speed: 1,
+                            loop: false,
+                            duration: selectedItem.duration || ''
+                        },
+                        links: [],
+                        attachments: [],
+                        isLoading: false
+                    });
+                }
+
+                if (!hasNotes && (selectedItem.personal_notes || selectedItem.description)) {
+                    blocks.push({
+                        id: `notes_${Date.now()}_3`,
+                        type: 'notes',
+                        title: 'Notas de Estudio',
+                        description: '',
+                        content: {
+                            text: selectedItem.personal_notes || selectedItem.description
+                        },
+                        links: [],
+                        attachments: [],
+                        isLoading: false
+                    });
+                }
             }
 
             setLesson({
@@ -124,10 +257,44 @@ const UnifiedLessonEditor = ({
                 blocks: blocks
             });
             if (blocks.length > 0) setActiveBlockId(blocks[0].id);
+            setShowPresets(false);
         } else {
-            setShowPresets(true);
+            // Nueva lección desde cero: cargar estructura estándar completa
+            const defaultBlocks = createStandardBlocks();
+            setLesson(prev => ({
+                ...prev,
+                blocks: defaultBlocks
+            }));
+            if (defaultBlocks.length > 0) setActiveBlockId(defaultBlocks[0].id);
+            setShowPresets(false);
         }
     }, [selectedItem]);
+
+    // Sincronizar enlace de video bidireccionalmente
+    const handleVideoUrlChange = (newUrl) => {
+        setLesson(prev => {
+            let updatedBlocks = prev.blocks;
+            const hasVideo = prev.blocks.some(b => b.type === 'video');
+            if (hasVideo) {
+                updatedBlocks = prev.blocks.map(b => b.type === 'video' ? { ...b, content: { ...(b.content || {}), url: newUrl } } : b);
+            } else {
+                updatedBlocks = [
+                    {
+                        id: `video_${Date.now()}`,
+                        type: 'video',
+                        title: 'Video Tutorial',
+                        description: '',
+                        content: { url: newUrl, bookmarks: [], speed: 1, loop: false, duration: prev.duration || '' },
+                        links: [],
+                        attachments: [],
+                        isLoading: false
+                    },
+                    ...prev.blocks
+                ];
+            }
+            return { ...prev, youtubeId: newUrl, blocks: updatedBlocks };
+        });
+    };
 
     // --- LOGICA DE BLOQUES ---
     const applyPreset = (preset) => {
@@ -148,9 +315,10 @@ const UnifiedLessonEditor = ({
 
     const getInitialContent = (type) => {
         switch (type) {
-            case 'video': return { url: '', artist: '', bookmarks: [], speed: 1, loop: false, duration: '' };
+            case 'video': return { url: lesson.youtubeId || '', artist: lesson.artist || '', bookmarks: [], speed: 1, loop: false, duration: '' };
             case 'sea-tab': return { code: '', bpm: 100, measures: 4 };
             case 'gp-tab': return { url: '', fileName: '' };
+            case 'notes': return { text: lesson.personal_notes || '' };
             case 'practice': return { targetBpm: 120, currentBpm: 80, timer: 15 };
             case 'checkpoints': return { items: [{ id: '1', text: 'Tocar frase limpia', done: false }] };
             case 'attachments': return { files: [] };
@@ -160,10 +328,21 @@ const UnifiedLessonEditor = ({
     };
 
     const addBlock = (type) => {
+        const titles = {
+            'video': 'Video Tutorial',
+            'gp-tab': 'Partitura AlphaTab / GP',
+            'sea-tab': 'Tablatura SEA',
+            'notes': 'Notas de Estudio',
+            'practice': 'Práctica y BPM',
+            'checkpoints': 'Logros y Objetivos',
+            'text': 'Texto Explicativo',
+            'attachments': 'Archivos Adjuntos',
+            'links': 'Enlaces de Referencia'
+        };
         const newBlock = {
             id: `${type}_${Date.now()}`,
             type,
-            title: `Nuevo bloque de ${type.toUpperCase()}`,
+            title: titles[type] || `Bloque de ${type.toUpperCase()}`,
             description: '',
             content: getInitialContent(type),
             links: [],
@@ -190,10 +369,18 @@ const UnifiedLessonEditor = ({
         try {
             const formData = new FormData();
             
-            // Si el primer bloque es video, usar su URL para el youtubeId principal
+            // 1. Extraer URL de video desde bloque de video o lesson.youtubeId
             const videoBlock = lesson.blocks.find(b => b.type === 'video');
             const rawMedia = (videoBlock?.content?.url || lesson.youtubeId || '').trim();
             const cleanYtId = getYouTubeId(rawMedia) || rawMedia;
+
+            // 2. Extraer tablatura SEA desde el bloque sea-tab si existe
+            const seaTabBlock = lesson.blocks.find(b => b.type === 'sea-tab');
+            const finalPracticeTab = seaTabBlock?.content?.code !== undefined ? seaTabBlock.content.code : (selectedItem?.practiceTab || '');
+
+            // 3. Extraer notas personales desde el bloque notes o lesson.personal_notes
+            const notesBlock = lesson.blocks.find(b => b.type === 'notes');
+            const finalPersonalNotes = notesBlock?.content?.text !== undefined ? notesBlock.content.text : lesson.personal_notes;
 
             formData.append('title', lesson.title);
             formData.append('artist', lesson.artist);
@@ -202,11 +389,12 @@ const UnifiedLessonEditor = ({
             formData.append('category', lesson.category);
             formData.append('harmonica_key', lesson.harmonica_key);
             formData.append('youtubeId', cleanYtId);
+            formData.append('practiceTab', finalPracticeTab);
+            formData.append('personal_notes', finalPersonalNotes);
             formData.append('duration', lesson.duration);
-            formData.append('personal_notes', lesson.personal_notes);
 
             // Extract video bookmarks if present
-            if (videoBlock && videoBlock.content.bookmarks) {
+            if (videoBlock && videoBlock.content?.bookmarks) {
                 formData.append('video_bookmarks', JSON.stringify(videoBlock.content.bookmarks));
             }
             
@@ -233,7 +421,7 @@ const UnifiedLessonEditor = ({
             }
 
             const res = await addItem(formData);
-            if (res.success) {
+            if (res && res.success) {
                 setIsAdding(false);
             }
         } catch (error) {
@@ -308,6 +496,7 @@ const UnifiedLessonEditor = ({
             case 'video': return <VideoBlockEditor {...props} />;
             case 'sea-tab': return <SeaTabBlockEditor {...props} />;
             case 'gp-tab': return <GpTabBlockEditor {...props} gpFileRef={gpFileRef} selectedGpFile={selectedGpFile} setSelectedGpFile={setSelectedGpFile} />;
+            case 'notes': return <NotesBlockEditor {...props} />;
             case 'practice': return <PracticeBlockEditor {...props} />;
             case 'checkpoints': return <CheckpointsBlockEditor {...props} />;
             case 'attachments': return <AttachmentsBlockEditor {...props} attachmentsRef={attachmentsRef} selectedAttachments={selectedAttachments} setSelectedAttachments={setSelectedAttachments} />;
@@ -454,6 +643,22 @@ const UnifiedLessonEditor = ({
                                 readOnly={isPreview}
                                 className="w-full bg-slate-950 border border-white/5 rounded-2xl px-5 py-4 text-sm font-bold text-white outline-none focus:border-blue-500/50 transition-all"
                             />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest flex items-center justify-between">
+                                <span className="flex items-center gap-1.5"><Video size={12} className="text-red-500" /> Enlace de Video</span>
+                                <span className="text-[9px] text-slate-500 font-normal">YouTube, TikTok, IG</span>
+                            </label>
+                            <div className="relative">
+                                <input
+                                    value={lesson.youtubeId || ''}
+                                    onChange={e => handleVideoUrlChange(e.target.value)}
+                                    readOnly={isPreview}
+                                    placeholder="https://www.youtube.com/... o TikTok / Instagram"
+                                    className="w-full bg-slate-950 border border-white/5 rounded-2xl px-5 py-4 text-xs font-mono text-white outline-none focus:border-blue-500/50 transition-all pr-10"
+                                />
+                                <Video size={14} className="absolute right-5 top-4.5 text-slate-600" />
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase text-slate-600 tracking-widest">Dificultad</label>
@@ -630,13 +835,14 @@ const VideoBlockEditor = ({ block, isPreview, updateBlock, removeBlock, lesson, 
                         <div className="flex-1 relative">
                             <input
                                 placeholder="URL de video (YouTube, Shorts, TikTok, Instagram)"
-                                value={block.content.url}
+                                value={block.content?.url || ''}
                                 onChange={e => {
                                     const url = e.target.value;
                                     updateBlock(block.id, { content: { ...block.content, url } });
+                                    setLesson(prev => ({ ...prev, youtubeId: url }));
                                     if (getYouTubeId(url)) fetchVideoMetadata(block.id, url);
                                 }}
-                                className="w-full bg-slate-950/50 border border-white/5 rounded-2xl px-5 py-3 text-sm text-white outline-none focus:border-red-500/30 transition"
+                                className="w-full bg-slate-950/50 border border-white/5 rounded-2xl px-5 py-3 text-sm text-white outline-none focus:border-red-500/30 transition font-mono text-xs"
                             />
                             {block.isLoading && <Loader2 size={16} className="absolute right-4 top-3.5 animate-spin text-red-500" />}
                         </div>
@@ -923,7 +1129,7 @@ const SeaTabBlockEditor = ({ block, isPreview, updateBlock, removeBlock, lesson 
                         className={`w-full bg-slate-950/80 border border-blue-500/10 rounded-[3rem] p-12 text-3xl font-black text-blue-100 tracking-[0.3em] uppercase text-center outline-none resize-none transition-all duration-500 ${isPlaying ? 'ring-4 ring-emerald-500/20 text-emerald-400' : 'focus:ring-4 focus:ring-blue-500/10'}`}
                         placeholder="-3' -4 -5 6 ~"
                         rows={2}
-                        value={block.content.code}
+                        value={block.content?.code || ''}
                         onChange={e => updateBlock(block.id, { content: { ...block.content, code: e.target.value } })}
                         readOnly={isPreview}
                     />
@@ -1017,30 +1223,43 @@ const GpTabBlockEditor = ({ block, isPreview, updateBlock, removeBlock, gpFileRe
     <BlockWrapper block={block} isPreview={isPreview} updateBlock={updateBlock} removeBlock={removeBlock} icon={<Music size={16} />} color="bg-indigo-600">
         <div className="space-y-4">
             {!isPreview && (
-                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-white/5 rounded-[2rem] bg-slate-950/30">
+                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-indigo-500/20 rounded-[2rem] bg-indigo-950/10">
                     <input 
                         type="file" 
                         ref={gpFileRef} 
                         className="hidden" 
-                        accept=".gp,.gp3,.gp4,.gp5,.gpx"
+                        accept=".gp,.gp3,.gp4,.gp5,.gpx,.pdf"
                         onChange={(e) => setSelectedGpFile(e.target.files[0])}
                     />
-                    <FileUp size={32} className="text-slate-700 mb-4" />
+                    <FileUp size={36} className="text-indigo-400 mb-4" />
                     <button 
                         onClick={() => gpFileRef.current?.click()}
-                        className="px-6 py-2 bg-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg"
+                        className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-indigo-600/20 transition-all hover:scale-105"
                     >
-                        {selectedGpFile ? 'Cambiar archivo GP' : 'Cargar archivo Guitar Pro'}
+                        {selectedGpFile ? 'Reemplazar Archivo GP' : (block.content?.url ? 'Cambiar Partitura GP' : 'Cargar Archivo Guitar Pro / AlphaTab')}
                     </button>
-                    {selectedGpFile && <p className="mt-4 text-xs font-bold text-indigo-400">{selectedGpFile.name}</p>}
-                    {block.content.fileName && !selectedGpFile && <p className="mt-4 text-xs font-bold text-slate-500">Actual: {block.content.fileName}</p>}
+                    {selectedGpFile ? (
+                        <div className="mt-4 flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-950/40 px-4 py-2 rounded-xl border border-emerald-500/20">
+                            <span>Archivo a subir:</span>
+                            <span className="font-mono">{selectedGpFile.name}</span>
+                        </div>
+                    ) : block.content?.url ? (
+                        <div className="mt-4 flex items-center gap-2 text-xs font-bold text-indigo-300 bg-indigo-950/40 px-4 py-2 rounded-xl border border-indigo-500/20">
+                            <span>✓ Partitura AlphaTab vinculada:</span>
+                            <span className="font-mono">{block.content.fileName || block.content.url.split('/').pop()}</span>
+                        </div>
+                    ) : (
+                        <p className="mt-3 text-[11px] text-slate-500 font-medium">Compatible con formatos .gp, .gp5, .gpx para reproducción interactiva</p>
+                    )}
                 </div>
             )}
-            {(selectedGpFile || block.content.url) && isPreview && (
+            {(selectedGpFile || block.content?.url) && isPreview && (
                 <div className="bg-slate-950 p-8 rounded-[2rem] border border-indigo-500/20 text-center">
                     <Music size={24} className="text-indigo-500 mx-auto mb-4" />
                     <p className="text-sm font-bold text-white">Partitura Interactiva Cargada</p>
-                    <p className="text-[10px] text-slate-500 uppercase mt-1">Lista para AlphaTab Engine</p>
+                    <p className="text-[10px] text-slate-500 uppercase mt-1">
+                        {selectedGpFile ? selectedGpFile.name : (block.content?.fileName || block.content?.url?.split('/').pop())}
+                    </p>
                 </div>
             )}
         </div>
@@ -1166,6 +1385,29 @@ const AttachmentsBlockEditor = ({ block, isPreview, updateBlock, removeBlock, at
     </BlockWrapper>
 );
 
+const NotesBlockEditor = ({ block, isPreview, updateBlock, removeBlock, setLesson }) => (
+    <BlockWrapper block={block} isPreview={isPreview} updateBlock={updateBlock} removeBlock={removeBlock} icon={<Bookmark size={16} />} color="bg-emerald-600">
+        <div className="space-y-4">
+            {isPreview ? (
+                <div className="p-6 bg-slate-950/50 rounded-2xl border border-white/5 text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">
+                    {block.content?.text || 'Sin notas registradas.'}
+                </div>
+            ) : (
+                <textarea
+                    className="w-full bg-slate-950/50 border border-white/5 rounded-2xl p-5 text-sm text-slate-200 outline-none focus:border-emerald-500/40 resize-y min-h-[140px] leading-relaxed transition font-sans"
+                    placeholder="Escribe aquí tus notas de estudio, digitación, consejos o anotaciones para esta lección..."
+                    value={block.content?.text || ''}
+                    onChange={e => {
+                        const text = e.target.value;
+                        updateBlock(block.id, { content: { ...block.content, text } });
+                        setLesson(prev => ({ ...prev, personal_notes: text }));
+                    }}
+                />
+            )}
+        </div>
+    </BlockWrapper>
+);
+
 const DefaultBlockEditor = ({ block, isPreview, updateBlock, removeBlock }) => (
     <BlockWrapper block={block} isPreview={isPreview} updateBlock={updateBlock} removeBlock={removeBlock} icon={<FileText size={16} />} color="bg-slate-600">
         {isPreview ? (
@@ -1174,7 +1416,7 @@ const DefaultBlockEditor = ({ block, isPreview, updateBlock, removeBlock }) => (
             <textarea
                 className="w-full bg-transparent text-slate-300 outline-none resize-none min-h-[100px]"
                 placeholder="Instrucciones, teoría o contexto..."
-                value={block.content.text}
+                value={block.content?.text || ''}
                 onChange={e => updateBlock(block.id, { content: { ...block.content, text: e.target.value } })}
             />
         )}

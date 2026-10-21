@@ -12,7 +12,7 @@ import CollectionModal from '../components/collections/CollectionModal';
 import { getYouTubeId } from '../utils/constants';
 import UniversalThumbnail from '../components/common/UniversalThumbnail';
 
-export default function LibraryPage({ setIsAdding }) {
+export default function LibraryPage({ setIsAdding, setSelectedItem }) {
     const { user } = useAuth();
     const [lessons, setLessons] = useState([]);
     const [collections, setCollections] = useState([]);
@@ -446,8 +446,20 @@ export default function LibraryPage({ setIsAdding }) {
                                                             />
                                                             <div className="absolute inset-0 bg-black/20 group-hover/card:bg-transparent transition-colors"></div>
                                                             
-                                                            {/* Delete action overlay */}
-                                                            <div className="absolute top-3 left-3 z-10">
+                                                            {/* Card actions overlay */}
+                                                            <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                                                                <button 
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        if (setSelectedItem) setSelectedItem(lesson);
+                                                                        if (setIsAdding) setIsAdding(true);
+                                                                    }}
+                                                                    className="w-7 h-7 bg-blue-600/90 hover:bg-blue-600 text-white rounded-lg flex items-center justify-center transition shadow-lg"
+                                                                    title="Editar lección"
+                                                                >
+                                                                    <Edit3 size={13} />
+                                                                </button>
                                                                 <button 
                                                                     onClick={(e) => {
                                                                         e.preventDefault();
@@ -456,7 +468,7 @@ export default function LibraryPage({ setIsAdding }) {
                                                                             api.deleteLesson(lesson.id).then(() => fetchLibrary());
                                                                         }
                                                                     }}
-                                                                    className="w-7 h-7 bg-red-500/80 hover:bg-red-600 text-white rounded-lg flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity shadow-lg"
+                                                                    className="w-7 h-7 bg-red-500/80 hover:bg-red-600 text-white rounded-lg flex items-center justify-center transition shadow-lg"
                                                                     title="Eliminar lección"
                                                                 >
                                                                     <Trash2 size={13} />

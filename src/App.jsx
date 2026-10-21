@@ -172,7 +172,7 @@ export default function App() {
             setIsMidiSettingsOpen={setIsMidiSettingsOpen}
         >
             <Routes>
-                <Route path="/library" element={<LibraryPage />} />
+                <Route path="/library" element={<LibraryPage setIsAdding={setIsAdding} setSelectedItem={setSelectedItem} />} />
                 <Route path="/tracks" element={<HarmonicaTracksCatalog />} />
                 <Route path="/profile/:username" element={<ProfilePage />} />
                 <Route path="/discovery" element={<DiscoveryPage />} />
