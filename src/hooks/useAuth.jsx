@@ -4,13 +4,25 @@ import api from '../services/api';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(() => {
+        try {
+            const savedUser = localStorage.getItem('harphub_user');
+            return savedUser ? JSON.parse(savedUser) : null;
+        } catch (e) {
+            console.error("Error reading saved user:", e);
+            return null;
+        }
+    });
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const savedUser = localStorage.getItem('harphub_user');
         if (savedUser) {
-            setUser(JSON.parse(savedUser));
+            try {
+                setUser(JSON.parse(savedUser));
+            } catch (e) {
+                console.error("Error parsing savedUser:", e);
+            }
         }
         setLoading(false);
     }, []);

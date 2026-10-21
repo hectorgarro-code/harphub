@@ -6,6 +6,7 @@ import {
     RotateCcw, Shuffle, Sparkles, Folder, Check, X, Search, Info
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import api from '../services/api';
 import { getYouTubeId } from '../utils/constants';
 import { POSITIONS, POPULAR_HARP_KEYS, ALL_HARP_KEYS, calculateSongKey } from '../utils/harmonica';
 
@@ -104,16 +105,64 @@ const STARTER_TRACKS = [
     }
 ];
 
+// Helper to scan all localStorage keys and rescue any user tracks
+const scanLocalStorageForTracks = () => {
+    const foundCustomTracks = [];
+    const knownStarterIds = new Set(STARTER_TRACKS.map(t => t.id));
+    const knownStarterUrls = new Set(STARTER_TRACKS.map(t => t.youtubeId || t.youtubeUrl));
+
+    try {
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key) continue;
+            if (
+                key.startsWith('harphub_harp_catalog') ||
+                key.startsWith('harphub_tracks') ||
+                key.includes('catalog')
+            ) {
+                try {
+                    const raw = localStorage.getItem(key);
+                    if (!raw) continue;
+                    const parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        for (const item of parsed) {
+                            if (item && (item.youtubeUrl || item.youtubeId)) {
+                                const isStarter = knownStarterIds.has(item.id) || knownStarterUrls.has(item.youtubeId || item.youtubeUrl);
+                                if (!isStarter) {
+                                    if (!foundCustomTracks.some(t => (t.youtubeId && t.youtubeId === item.youtubeId) || t.id === item.id)) {
+                                        foundCustomTracks.push(item);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // ignore JSON parse errors
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Error scanning localStorage:', e);
+    }
+    return foundCustomTracks;
+};
+
 export default function HarmonicaTracksCatalog() {
     const { user } = useAuth();
     const storageKey = `harphub_harp_catalog_${user?.id || 'guest'}`;
     const playlistsKey = `harphub_harp_playlists_${user?.id || 'guest'}`;
 
-    // Tracks & Playlists state
+    const [recoveredCount, setRecoveredCount] = useState(0);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // Initial tracks state
     const [tracks, setTracks] = useState(() => {
         try {
             const saved = localStorage.getItem(storageKey);
-            if (saved) return JSON.parse(saved);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
         } catch (e) {
             console.error('Error loading tracks:', e);
         }
@@ -123,29 +172,116 @@ export default function HarmonicaTracksCatalog() {
     const [playlists, setPlaylists] = useState(() => {
         try {
             const saved = localStorage.getItem(playlistsKey);
-            if (saved) return JSON.parse(saved);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
         } catch (e) {
             console.error('Error loading playlists:', e);
         }
         return DEFAULT_PLAYLISTS;
     });
 
-    // Save to localStorage
-    useEffect(() => {
+    // Central safe persister
+    const persistData = (newTracks, newPlaylists = playlists) => {
         try {
-            localStorage.setItem(storageKey, JSON.stringify(tracks));
+            localStorage.setItem(storageKey, JSON.stringify(newTracks));
+            localStorage.setItem(`${storageKey}_backup`, JSON.stringify(newTracks));
+            localStorage.setItem(playlistsKey, JSON.stringify(newPlaylists));
         } catch (e) {
-            console.error('Error saving tracks:', e);
+            console.error('Error saving tracks locally:', e);
         }
-    }, [tracks, storageKey]);
+        if (user?.id) {
+            api.saveHarmonicaCatalog(user.id, newTracks, newPlaylists).catch(err => {
+                console.warn('Error saving catalog to backend:', err);
+            });
+        }
+    };
 
+    // Safe load & auto-recovery effect
     useEffect(() => {
-        try {
-            localStorage.setItem(playlistsKey, JSON.stringify(playlists));
-        } catch (e) {
-            console.error('Error saving playlists:', e);
+        let isCancelled = false;
+
+        async function initCatalog() {
+            let loadedTracks = null;
+            let loadedPlaylists = null;
+
+            // 1. Try server if logged in
+            if (user?.id) {
+                try {
+                    const res = await api.getHarmonicaCatalog(user.id);
+                    if (!isCancelled && res && res.success && res.tracks && Array.isArray(res.tracks) && res.tracks.length > 0) {
+                        loadedTracks = res.tracks;
+                        if (res.playlists && Array.isArray(res.playlists) && res.playlists.length > 0) {
+                            loadedPlaylists = res.playlists;
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Could not load catalog from API, using local:', err);
+                }
+            }
+
+            // 2. Try localStorage for active user/guest
+            if (!loadedTracks) {
+                try {
+                    const saved = localStorage.getItem(storageKey);
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (Array.isArray(parsed) && parsed.length > 0) loadedTracks = parsed;
+                    }
+                } catch (e) {}
+            }
+
+            if (!loadedPlaylists) {
+                try {
+                    const savedPl = localStorage.getItem(playlistsKey);
+                    if (savedPl) {
+                        const parsed = JSON.parse(savedPl);
+                        if (Array.isArray(parsed) && parsed.length > 0) loadedPlaylists = parsed;
+                    }
+                } catch (e) {}
+            }
+
+            // 3. Auto-recovery: scan all other localStorage keys for user tracks
+            const recovered = scanLocalStorageForTracks();
+            let finalTracks = loadedTracks || STARTER_TRACKS;
+
+            if (recovered.length > 0) {
+                const missing = recovered.filter(
+                    rt => !finalTracks.some(t => (t.youtubeId && t.youtubeId === rt.youtubeId) || t.id === rt.id)
+                );
+                if (missing.length > 0) {
+                    finalTracks = [...missing, ...finalTracks];
+                    if (!isCancelled) setRecoveredCount(missing.length);
+                }
+            }
+
+            if (!isCancelled) {
+                setTracks(finalTracks);
+                if (loadedPlaylists) setPlaylists(loadedPlaylists);
+                setIsLoaded(true);
+
+                // Persist safely in active key & backup
+                try {
+                    localStorage.setItem(storageKey, JSON.stringify(finalTracks));
+                    localStorage.setItem(`${storageKey}_backup`, JSON.stringify(finalTracks));
+                    if (loadedPlaylists) {
+                        localStorage.setItem(playlistsKey, JSON.stringify(loadedPlaylists));
+                    }
+                } catch (e) {}
+
+                if (user?.id) {
+                    api.saveHarmonicaCatalog(user.id, finalTracks, loadedPlaylists || DEFAULT_PLAYLISTS).catch(() => {});
+                }
+            }
         }
-    }, [playlists, playlistsKey]);
+
+        initCatalog();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [user?.id, storageKey, playlistsKey]);
 
     // Filters
     const [selectedHarpKey, setSelectedHarpKey] = useState('ALL');
@@ -268,7 +404,7 @@ export default function HarmonicaTracksCatalog() {
         const trackTitle = formData.title.trim() || `Jam en ${formData.songKey} (Armónica ${formData.harpKey})`;
 
         if (editingTrack) {
-            setTracks(prev => prev.map(t => t.id === editingTrack.id ? {
+            const updated = tracks.map(t => t.id === editingTrack.id ? {
                 ...t,
                 title: trackTitle,
                 youtubeUrl: formData.url,
@@ -280,7 +416,9 @@ export default function HarmonicaTracksCatalog() {
                 bpm: formData.bpm,
                 style: formData.style,
                 notes: formData.notes
-            } : t));
+            } : t);
+            setTracks(updated);
+            persistData(updated, playlists);
         } else {
             const newTrack = {
                 id: `track-${Date.now()}`,
@@ -297,7 +435,9 @@ export default function HarmonicaTracksCatalog() {
                 isFavorite: false,
                 createdAt: Date.now()
             };
-            setTracks(prev => [newTrack, ...prev]);
+            const updated = [newTrack, ...tracks];
+            setTracks(updated);
+            persistData(updated, playlists);
             setCurrentTrackIndex(0);
         }
 
@@ -306,7 +446,9 @@ export default function HarmonicaTracksCatalog() {
 
     const handleDeleteTrack = (id) => {
         if (window.confirm('¿Seguro que deseas eliminar este tema?')) {
-            setTracks(prev => prev.filter(t => t.id !== id));
+            const updated = tracks.filter(t => t.id !== id);
+            setTracks(updated);
+            persistData(updated, playlists);
             if (currentTrackIndex >= filteredTracks.length - 1) {
                 setCurrentTrackIndex(0);
             }
@@ -314,7 +456,9 @@ export default function HarmonicaTracksCatalog() {
     };
 
     const toggleFavorite = (id) => {
-        setTracks(prev => prev.map(t => t.id === id ? { ...t, isFavorite: !t.isFavorite } : t));
+        const updated = tracks.map(t => t.id === id ? { ...t, isFavorite: !t.isFavorite } : t);
+        setTracks(updated);
+        persistData(updated, playlists);
     };
 
     // Navigation in Playlist
@@ -361,7 +505,9 @@ export default function HarmonicaTracksCatalog() {
         e.preventDefault();
         const trimmed = newPlaylistName.trim();
         if (trimmed && !playlists.includes(trimmed)) {
-            setPlaylists(prev => [...prev, trimmed]);
+            const updatedPl = [...playlists, trimmed];
+            setPlaylists(updatedPl);
+            persistData(tracks, updatedPl);
             setSelectedPlaylist(trimmed);
             setNewPlaylistName('');
             setIsNewPlaylistOpen(false);
@@ -371,8 +517,25 @@ export default function HarmonicaTracksCatalog() {
     const restoreStarters = () => {
         if (window.confirm('¿Deseas recargar la colección recomendada de backing tracks?')) {
             setTracks(STARTER_TRACKS);
+            persistData(STARTER_TRACKS, playlists);
             setSelectedHarpKey('ALL');
             setSelectedPlaylist('ALL');
+        }
+    };
+
+    const handleManualScan = () => {
+        const recovered = scanLocalStorageForTracks();
+        const missing = recovered.filter(
+            rt => !tracks.some(t => (t.youtubeId && t.youtubeId === rt.youtubeId) || t.id === rt.id)
+        );
+        if (missing.length > 0) {
+            const updated = [...missing, ...tracks];
+            setTracks(updated);
+            persistData(updated, playlists);
+            setRecoveredCount(missing.length);
+            alert(`¡Se encontraron y restauraron ${missing.length} temas guardados!`);
+        } else {
+            alert('No se encontraron temas adicionales en el almacenamiento local.');
         }
     };
 
@@ -426,6 +589,16 @@ export default function HarmonicaTracksCatalog() {
                             <span>Agregar Tema</span>
                         </button>
 
+                        {/* Manual recovery scan button */}
+                        <button
+                            onClick={handleManualScan}
+                            className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 font-bold text-xs transition"
+                            title="Buscar y restaurar canciones de sesiones anteriores guardadas en tu navegador"
+                        >
+                            <RotateCcw size={15} />
+                            <span className="hidden sm:inline">Recuperar</span>
+                        </button>
+
                         {/* Presets reload */}
                         <button
                             onClick={restoreStarters}
@@ -439,6 +612,25 @@ export default function HarmonicaTracksCatalog() {
             </div>
 
             <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6 space-y-6">
+                
+                {/* RECOVERY BANNER */}
+                {recoveredCount > 0 && (
+                    <div className="flex items-center justify-between p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 shadow-xl">
+                        <div className="flex items-center gap-3">
+                            <Sparkles size={22} className="text-emerald-400 shrink-0" />
+                            <div>
+                                <p className="text-sm font-bold text-white">¡Temas recuperados con éxito!</p>
+                                <p className="text-xs text-emerald-400/90 mt-0.5">Se detectaron y restauraron {recoveredCount} canciones guardadas anteriormente en tu navegador.</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setRecoveredCount(0)} 
+                            className="p-1.5 rounded-xl hover:bg-emerald-500/20 text-emerald-400 hover:text-white transition"
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                )}
                 
                 {/* HARMONICA KEY SELECTOR (THE MAIN ATTRACTION) */}
                 <div className={`p-4 lg:p-6 rounded-3xl border transition-all ${isCarMode ? 'bg-slate-900 border-amber-500/40 shadow-2xl' : 'bg-slate-900/60 border-white/5 backdrop-blur-md shadow-xl'}`}>

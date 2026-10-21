@@ -456,6 +456,13 @@ try {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )");
 
+    $pdo->exec("CREATE TABLE IF NOT EXISTS user_harmonica_catalog (
+        user_id VARCHAR(255) PRIMARY KEY,
+        tracks_json LONGTEXT,
+        playlists_json TEXT,
+        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )");
+
     // Social Graph Migrations
     $pdo->exec("CREATE TABLE IF NOT EXISTS user_progress (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1168,6 +1175,27 @@ try {
             }
             
             echo json_encode(['success' => true, 'global' => $global, 'user' => $user]);
+            exit;
+        }
+
+        if ($action === 'get_harmonica_catalog') {
+            $user_id = sanitize_string($_GET['user_id'] ?? '');
+            if (!$user_id) {
+                echo json_encode(['error' => 'Invalid user_id']);
+                exit;
+            }
+            $stmt = $pdo->prepare("SELECT tracks_json, playlists_json FROM user_harmonica_catalog WHERE user_id = ?");
+            $stmt->execute([$user_id]);
+            $res = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($res) {
+                echo json_encode([
+                    'success' => true,
+                    'tracks' => json_decode($res['tracks_json'] ?: '[]'),
+                    'playlists' => json_decode($res['playlists_json'] ?: '[]')
+                ]);
+            } else {
+                echo json_encode(['success' => true, 'tracks' => null, 'playlists' => null]);
+            }
             exit;
         }
 
@@ -2262,6 +2290,22 @@ try {
             }
             $stmt = $pdo->prepare("INSERT INTO user_audio_settings (user_id, eq_settings) VALUES (?, ?) ON DUPLICATE KEY UPDATE eq_settings = VALUES(eq_settings)");
             $stmt->execute([$user_id, is_array($eq) ? json_encode($eq) : $eq]);
+            echo json_encode(['success' => true]);
+            exit;
+        }
+
+        if ($action === 'save_harmonica_catalog') {
+            $user_id = sanitize_string($data['user_id'] ?? '');
+            $tracks = $data['tracks'] ?? null;
+            $playlists = $data['playlists'] ?? null;
+            if (!$user_id) {
+                http_response_code(400); echo json_encode(['error' => 'Missing user_id']); exit;
+            }
+            $tracks_json = is_array($tracks) ? json_encode($tracks, JSON_UNESCAPED_UNICODE) : (string)$tracks;
+            $playlists_json = is_array($playlists) ? json_encode($playlists, JSON_UNESCAPED_UNICODE) : (string)$playlists;
+
+            $stmt = $pdo->prepare("INSERT INTO user_harmonica_catalog (user_id, tracks_json, playlists_json) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE tracks_json = VALUES(tracks_json), playlists_json = VALUES(playlists_json)");
+            $stmt->execute([$user_id, $tracks_json, $playlists_json]);
             echo json_encode(['success' => true]);
             exit;
         }

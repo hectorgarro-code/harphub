@@ -79,6 +79,15 @@ const api = {
         return this.request('upload_backing_track', 'POST', formData);
     },
 
+    // Catálogo de Armónica por Tonalidad
+    getHarmonicaCatalog(userId) {
+        return this.request('get_harmonica_catalog', 'GET', { user_id: userId });
+    },
+
+    saveHarmonicaCatalog(userId, tracks, playlists) {
+        return this.request('save_harmonica_catalog', 'POST', { user_id: userId, tracks, playlists });
+    },
+
     // Perfiles y Social
     getProfile(username, currentUserId = null) {
         return this.request('get_profile', 'GET', { username, current_user_id: currentUserId });
