@@ -21,6 +21,7 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
     const [selectedCollection, setSelectedCollection] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [instrumentFilter, setInstrumentFilter] = useState('all');
+    const [keyFilter, setKeyFilter] = useState('ALL');
     const [durationFilter, setDurationFilter] = useState('all');
     const [completionFilter, setCompletionFilter] = useState('all'); // all, completed, pending
     const [sortBy, setSortBy] = useState('title');
@@ -84,9 +85,11 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
 
     const filteredLessons = useMemo(() => {
         return lessons.filter(l => {
-            const matchesSearch = l.title.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = l.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                (l.artist && l.artist.toLowerCase().includes(searchTerm.toLowerCase()));
             const matchesInstrument = instrumentFilter === 'all' || l.instrument?.toLowerCase() === instrumentFilter.toLowerCase();
             const matchesCompletion = completionFilter === 'all' ? true : (completionFilter === 'completed' ? l.completed : !l.completed);
+            const matchesKey = keyFilter === 'ALL' || (l.harmonica_key && l.harmonica_key.toUpperCase() === keyFilter.toUpperCase());
             
             const mins = parseDuration(l.duration);
             let matchesDuration = true;
@@ -94,7 +97,7 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
             else if (durationFilter === '10-30') matchesDuration = mins >= 10 && mins <= 30;
             else if (durationFilter === '>30') matchesDuration = mins > 30;
 
-            return matchesSearch && matchesInstrument && matchesCompletion && matchesDuration;
+            return matchesSearch && matchesInstrument && matchesCompletion && matchesDuration && matchesKey;
         }).sort((a, b) => {
             if (sortBy === 'title') return a.title.localeCompare(b.title);
             if (sortBy === 'difficulty') {
@@ -104,7 +107,7 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
             if (sortBy === 'duration') return parseDuration(a.duration) - parseDuration(b.duration);
             return 0;
         });
-    }, [lessons, searchTerm, instrumentFilter, completionFilter, durationFilter, sortBy]);
+    }, [lessons, searchTerm, instrumentFilter, completionFilter, durationFilter, sortBy, keyFilter]);
 
     const groupedLessons = useMemo(() => {
         // Deduplicate collections by title
@@ -264,6 +267,29 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
                 {/* Filters Row */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-8 bg-slate-900/30 p-4 rounded-[2rem] border border-white/5">
                     <div className="flex flex-wrap items-center gap-4">
+
+                        <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${keyFilter !== 'ALL' ? 'bg-blue-600/20 border-blue-500/40 text-blue-400' : 'bg-slate-950/50 border-white/5 text-slate-400'}`}>
+                            <Music size={14} className={keyFilter !== 'ALL' ? 'text-blue-400' : 'text-slate-500'} />
+                            <select 
+                                value={keyFilter}
+                                onChange={(e) => setKeyFilter(e.target.value)}
+                                className="bg-transparent text-[10px] font-black uppercase tracking-widest text-inherit focus:outline-none cursor-pointer"
+                            >
+                                <option value="ALL" className="bg-slate-950 text-slate-300">TODAS LAS TONALIDADES</option>
+                                {['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map(k => (
+                                    <option key={k} value={k} className="bg-slate-950 text-white font-bold">TONALIDAD {k}</option>
+                                ))}
+                            </select>
+                            {keyFilter !== 'ALL' && (
+                                <button 
+                                    onClick={() => setKeyFilter('ALL')} 
+                                    className="text-slate-400 hover:text-white ml-1 transition"
+                                    title="Quitar filtro de tonalidad"
+                                >
+                                    <X size={12} />
+                                </button>
+                            )}
+                        </div>
 
                         <div className="flex items-center gap-2 px-4 py-2 bg-slate-950/50 rounded-xl border border-white/5">
                             <Clock size={14} className="text-slate-500" />
@@ -492,6 +518,12 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
                                                                 </div>
                                                             </div>
 
+                                                            {lesson.harmonica_key && lesson.harmonica_key !== 'ALL' && (
+                                                                <div className="absolute bottom-3 left-3 px-2 py-0.5 bg-blue-600/90 backdrop-blur-sm rounded-md text-[9px] font-black text-white border border-blue-400/30 uppercase tracking-wider shadow-md">
+                                                                    Key {lesson.harmonica_key}
+                                                                </div>
+                                                            )}
+
                                                             <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-md text-[10px] font-black text-white border border-white/10">
                                                                 {lesson.duration || '5:00'}
                                                             </div>
@@ -499,15 +531,20 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
 
                                                         <div className="p-5">
                                                             <div className="flex items-center gap-2 mb-2">
-                                                                <div className="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+                                                                <div className="w-8 h-8 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
                                                                     <Clock size={12} />
                                                                 </div>
                                                                 <h4 className="font-black text-white leading-tight line-clamp-2 group-hover/card:text-blue-400 transition-colors">
                                                                     {lesson.title || 'Lección sin título'}
                                                                 </h4>
                                                             </div>
-                                                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
-                                                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">{lesson.instrument || 'Armónica'} • {group.title}</span>
+                                                            <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                                                                <span className="truncate">{lesson.instrument || 'Armónica'} • {group.title}</span>
+                                                                {lesson.harmonica_key && lesson.harmonica_key !== 'ALL' && (
+                                                                    <span className="shrink-0 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[8px] font-black tracking-wider ml-2">
+                                                                        {lesson.harmonica_key}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </Link>
@@ -527,6 +564,7 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
                                 onClick={() => {
                                     setSearchTerm('');
                                     setInstrumentFilter('all');
+                                    setKeyFilter('ALL');
                                     setDurationFilter('all');
                                     setCompletionFilter('all');
                                 }}
