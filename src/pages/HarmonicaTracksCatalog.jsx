@@ -3,7 +3,8 @@ import YouTube from 'react-youtube';
 import { 
     Headphones, Play, Pause, SkipForward, SkipBack, Plus, Trash2, 
     Edit3, ExternalLink, Star, Car, Music, Disc3, Volume2, 
-    RotateCcw, Shuffle, Sparkles, Folder, Check, X, Search, Info
+    RotateCcw, Shuffle, Sparkles, Folder, Check, X, Search, Info,
+    ChevronDown, ChevronUp
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
@@ -284,7 +285,8 @@ export default function HarmonicaTracksCatalog() {
     }, [user?.id, storageKey, playlistsKey]);
 
     // Filters
-    const [selectedHarpKey, setSelectedHarpKey] = useState('ALL');
+    const [selectedHarpKey, setSelectedHarpKey] = useState('C');
+    const [isKeySelectorExpanded, setIsKeySelectorExpanded] = useState(false);
     const [selectedPlaylist, setSelectedPlaylist] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [onlyFavorites, setOnlyFavorites] = useState(false);
@@ -539,73 +541,198 @@ export default function HarmonicaTracksCatalog() {
         }
     };
 
+    // ========================================================
+    // MODO AUTO: AISLADO Y ENFOCADO EXCLUSIVAMENTE EN REPRODUCTOR
+    // ========================================================
+    if (isCarMode) {
+        return (
+            <div className="min-h-screen bg-black text-white p-4 sm:p-8 flex flex-col justify-center max-w-4xl mx-auto space-y-4 sm:space-y-6">
+                {/* Header mínimo para salir */}
+                <div className="flex items-center justify-between bg-slate-900 border border-amber-500/30 px-4 py-2.5 rounded-2xl">
+                    <div className="flex items-center gap-2 text-amber-400 font-black text-xs sm:text-sm uppercase tracking-wider">
+                        <Car size={18} /> Modo Auto
+                    </div>
+                    <button
+                        onClick={() => setIsCarMode(false)}
+                        className="px-3.5 py-1.5 rounded-xl bg-slate-800 text-white hover:bg-slate-700 font-bold text-xs uppercase tracking-wider border border-white/10 flex items-center gap-1.5 transition active:scale-95"
+                    >
+                        <X size={15} /> Salir Modo Auto
+                    </button>
+                </div>
+
+                {activeTrack ? (
+                    <div className="rounded-3xl border-2 border-amber-500/40 bg-slate-950 p-4 sm:p-8 shadow-2xl space-y-4 sm:space-y-6">
+                        {/* Video */}
+                        <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black shadow-2xl border border-white/10 relative">
+                            <YouTube
+                                videoId={activeTrack.youtubeId}
+                                className="w-full h-full"
+                                iframeClassName="w-full h-full"
+                                onReady={(e) => {
+                                    playerRef.current = e.target;
+                                    if (isPlaying) e.target.playVideo();
+                                }}
+                                onPlay={() => setIsPlaying(true)}
+                                onPause={() => setIsPlaying(false)}
+                                onEnd={() => {
+                                    if (isLooping) {
+                                        playerRef.current?.playVideo();
+                                    } else {
+                                        handleNextTrack();
+                                    }
+                                }}
+                                opts={{
+                                    playerVars: {
+                                        autoplay: 1,
+                                        controls: 1,
+                                        modestbranding: 1,
+                                        rel: 0,
+                                        origin: typeof window !== 'undefined' ? window.location.origin : undefined
+                                    }
+                                }}
+                            />
+                        </div>
+
+                        {/* Info */}
+                        <div>
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <span className="px-3 py-1 rounded-xl bg-amber-500 text-black font-black text-xs uppercase tracking-wider">
+                                    Armónica: {activeTrack.harpKey}
+                                </span>
+                                <span className="px-3 py-1 rounded-xl bg-slate-800 text-white font-black text-xs uppercase border border-white/10">
+                                    Tema en: {activeTrack.songKey}
+                                </span>
+                                <span className="px-3 py-1 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs">
+                                    {activeTrack.position === 2 ? '2da Pos (Blues)' : `${activeTrack.position}ta Pos`}
+                                </span>
+                            </div>
+                            <h2 className="text-xl sm:text-2xl font-black text-white line-clamp-2">
+                                {activeTrack.title}
+                            </h2>
+                        </div>
+
+                        {/* Massive driver controls */}
+                        <div className="flex items-center justify-center gap-4 sm:gap-8 pt-2">
+                            <button
+                                onClick={() => setIsShuffle(!isShuffle)}
+                                className={`p-3.5 rounded-2xl transition ${isShuffle ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-500 hover:text-white'}`}
+                                title="Aleatorio"
+                            >
+                                <Shuffle size={24} />
+                            </button>
+
+                            <button
+                                onClick={handlePrevTrack}
+                                className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition active:scale-90 border border-white/10"
+                                title="Tema Anterior"
+                            >
+                                <SkipBack size={30} />
+                            </button>
+
+                            <button
+                                onClick={togglePlayPause}
+                                className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-tr from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 flex items-center justify-center transition active:scale-95 shadow-2xl shadow-amber-500/40 ring-4 ring-amber-400/20"
+                                title={isPlaying ? 'Pausa' : 'Reproducir'}
+                            >
+                                {isPlaying ? (
+                                    <Pause size={44} fill="currentColor" />
+                                ) : (
+                                    <Play size={44} fill="currentColor" className="ml-1" />
+                                )}
+                            </button>
+
+                            <button
+                                onClick={handleNextTrack}
+                                className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition active:scale-90 border border-white/10"
+                                title="Tema Siguiente"
+                            >
+                                <SkipForward size={30} />
+                            </button>
+
+                            <button
+                                onClick={() => setIsLooping(!isLooping)}
+                                className={`p-3.5 rounded-2xl transition ${isLooping ? 'bg-slate-700 text-white' : 'bg-slate-900 text-slate-500 hover:text-white'}`}
+                                title="Repetir tema"
+                            >
+                                <RotateCcw size={24} />
+                            </button>
+                        </div>
+
+                        <div className="text-center text-xs text-slate-500 pt-2 border-t border-white/5">
+                            Tema <b className="text-white">{currentTrackIndex + 1}</b> de <b className="text-white">{filteredTracks.length}</b> en lista
+                        </div>
+                    </div>
+                ) : (
+                    <div className="p-8 text-center rounded-3xl bg-slate-900 border border-white/5 space-y-3">
+                        <Headphones size={36} className="mx-auto text-slate-600" />
+                        <h3 className="text-lg font-bold text-slate-300">No hay temas disponibles</h3>
+                        <button
+                            onClick={() => setIsCarMode(false)}
+                            className="px-5 py-2.5 rounded-2xl bg-slate-800 text-white font-bold text-xs uppercase tracking-wider inline-flex items-center gap-2"
+                        >
+                            Salir de Modo Auto
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     return (
-        <div className={`min-h-full pb-28 text-white transition-colors duration-300 ${isCarMode ? 'bg-black' : 'bg-slate-950'}`}>
+        <div className="min-h-full pb-28 text-white transition-colors duration-300 bg-slate-950">
             {/* TOP HEADER */}
-            <div className={`border-b ${isCarMode ? 'border-amber-500/30 bg-slate-900/90' : 'border-white/5 bg-slate-900/60'} backdrop-blur-xl px-4 lg:px-8 py-5 sticky top-0 z-30 transition-all shadow-xl`}>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 max-w-7xl mx-auto">
+            <div className="border-b border-white/5 bg-slate-900/80 backdrop-blur-xl px-4 lg:px-8 py-3.5 sticky top-0 z-30 transition-all shadow-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 max-w-7xl mx-auto">
                     <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform hover:scale-105 ${isCarMode ? 'bg-amber-500 text-black shadow-amber-500/20' : 'bg-gradient-to-tr from-amber-500 to-orange-600 text-white shadow-amber-900/30'}`}>
-                            {isCarMode ? <Car size={26} strokeWidth={2.5} /> : <Headphones size={24} strokeWidth={2.5} />}
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-800 text-slate-200 border border-slate-700 shadow-md">
+                            <Headphones size={20} strokeWidth={2.5} />
                         </div>
                         <div>
-                            <div className="flex items-center gap-2">
-                                <h1 className="text-xl lg:text-2xl font-black uppercase tracking-tight text-white flex items-center gap-2">
-                                    Temas por Tonalidad
-                                </h1>
-                                {isCarMode && (
-                                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-black text-[10px] font-black uppercase tracking-wider animate-pulse">
-                                        Modo Auto
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-xs text-slate-400 font-medium mt-0.5">
-                                Agarra tu armónica, dale play y toca encima en el auto o en tu estudio
+                            <h1 className="text-lg lg:text-xl font-black uppercase tracking-tight text-white flex items-center gap-2">
+                                Temas por Tonalidad
+                            </h1>
+                            <p className="text-[11px] text-slate-400 font-medium hidden sm:block">
+                                Selecciona la armónica y practica encima de temas reales
                             </p>
                         </div>
                     </div>
 
-                    <div className="flex items-center flex-wrap gap-2.5">
+                    <div className="flex items-center gap-2">
                         {/* Car Mode Toggle Button */}
                         <button
-                            onClick={() => setIsCarMode(!isCarMode)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-md active:scale-95 ${
-                                isCarMode 
-                                    ? 'bg-amber-500 text-black ring-2 ring-amber-400 shadow-amber-500/30' 
-                                    : 'bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700'
-                            }`}
-                            title="Modo simplificado con botones gigantes ideal para conducir o tocar de pie"
+                            onClick={() => setIsCarMode(true)}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white font-bold text-xs border border-slate-700/80 transition shadow-sm active:scale-95"
+                            title="Modo simplificado para auto o ensayo con controles gigantes"
                         >
-                            <Car size={16} />
-                            <span>{isCarMode ? 'Salir Modo Auto' : 'Modo Auto'}</span>
+                            <Car size={15} />
+                            <span>Modo Auto</span>
                         </button>
 
                         {/* Add Track Button */}
                         <button
-                            onClick={() => openAddModal()}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-orange-400 transition-all active:scale-95"
+                            onClick={() => openAddModal(selectedHarpKey !== 'ALL' ? selectedHarpKey : undefined)}
+                            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 font-bold text-xs border border-slate-600 transition shadow-sm active:scale-95"
                         >
-                            <Plus size={16} strokeWidth={3} />
-                            <span>Agregar Tema</span>
+                            <Plus size={15} strokeWidth={2.5} />
+                            <span>Agregar</span>
                         </button>
 
                         {/* Manual recovery scan button */}
                         <button
                             onClick={handleManualScan}
-                            className="flex items-center gap-1.5 px-3 py-2.5 rounded-2xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 font-bold text-xs transition"
-                            title="Buscar y restaurar canciones de sesiones anteriores guardadas en tu navegador"
+                            className="p-2 rounded-xl bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-700 font-bold text-xs transition border border-white/5"
+                            title="Recuperar canciones anteriores del navegador"
                         >
                             <RotateCcw size={15} />
-                            <span className="hidden sm:inline">Recuperar</span>
                         </button>
 
                         {/* Presets reload */}
                         <button
                             onClick={restoreStarters}
-                            className="p-2.5 rounded-2xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition"
-                            title="Recargar temas de muestra iniciales"
+                            className="p-2 rounded-xl bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-700 transition border border-white/5"
+                            title="Recargar temas iniciales"
                         >
-                            <Sparkles size={16} />
+                            <Sparkles size={15} />
                         </button>
                     </div>
                 </div>
@@ -632,104 +759,143 @@ export default function HarmonicaTracksCatalog() {
                     </div>
                 )}
                 
-                {/* HARMONICA KEY SELECTOR (THE MAIN ATTRACTION) */}
-                <div className={`p-4 lg:p-6 rounded-3xl border transition-all ${isCarMode ? 'bg-slate-900 border-amber-500/40 shadow-2xl' : 'bg-slate-900/60 border-white/5 backdrop-blur-md shadow-xl'}`}>
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <Disc3 size={18} className="text-amber-500" />
-                            <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
-                                ¿Qué armónica tienes a mano? (Tonalidad)
-                            </span>
-                        </div>
-                        {selectedHarpKey !== 'ALL' && (
-                            <button
-                                onClick={() => setSelectedHarpKey('ALL')}
-                                className="text-xs font-bold text-amber-400 hover:text-amber-300 transition underline underline-offset-4"
-                            >
-                                Ver todas
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Big Key Buttons for quick touch */}
-                    <div className="grid grid-cols-4 sm:grid-cols-7 lg:grid-cols-13 gap-2">
-                        <button
-                            onClick={() => setSelectedHarpKey('ALL')}
-                            className={`py-3 px-2 rounded-2xl font-black text-xs uppercase transition-all flex flex-col items-center justify-center border ${
-                                selectedHarpKey === 'ALL'
-                                    ? 'bg-amber-500 text-black border-amber-400 shadow-lg shadow-amber-500/30 scale-105'
-                                    : 'bg-slate-800/80 text-slate-300 border-white/5 hover:bg-slate-700 hover:text-white'
-                            }`}
-                        >
-                            <span className="text-sm">TODAS</span>
-                            <span className="text-[9px] opacity-75 font-semibold mt-0.5">{tracks.length}</span>
-                        </button>
-
-                        {POPULAR_HARP_KEYS.map(key => {
-                            const count = tracks.filter(t => t.harpKey === key).length;
-                            const isSelected = selectedHarpKey === key;
-                            return (
-                                <button
-                                    key={key}
-                                    onClick={() => setSelectedHarpKey(key)}
-                                    className={`py-3 px-2 rounded-2xl font-black transition-all flex flex-col items-center justify-center border ${
-                                        isSelected
-                                            ? 'bg-gradient-to-b from-amber-400 to-amber-500 text-black border-amber-300 shadow-xl shadow-amber-500/40 scale-105'
-                                            : 'bg-slate-800/90 text-white border-white/5 hover:border-amber-500/40 hover:bg-slate-750'
-                                    }`}
-                                >
-                                    <span className="text-lg lg:text-xl font-black tracking-tight">{key}</span>
-                                    <span className={`text-[9px] font-bold mt-0.5 ${isSelected ? 'text-black/80' : 'text-slate-400'}`}>
-                                        {count} {count === 1 ? 'tema' : 'temas'}
-                                    </span>
-                                </button>
-                            );
-                        })}
-
-                        {/* Other keys dropdown or chips */}
-                        {ALL_HARP_KEYS.filter(k => !POPULAR_HARP_KEYS.includes(k)).map(key => {
-                            const count = tracks.filter(t => t.harpKey === key).length;
-                            const isSelected = selectedHarpKey === key;
-                            return (
-                                <button
-                                    key={key}
-                                    onClick={() => setSelectedHarpKey(key)}
-                                    className={`py-3 px-2 rounded-2xl font-black transition-all flex flex-col items-center justify-center border ${
-                                        isSelected
-                                            ? 'bg-amber-500 text-black border-amber-300 shadow-xl scale-105'
-                                            : 'bg-slate-800/40 text-slate-400 border-white/5 hover:bg-slate-700 hover:text-white'
-                                    }`}
-                                >
-                                    <span className="text-base font-black">{key}</span>
-                                    <span className="text-[9px] font-bold mt-0.5 opacity-75">{count}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {/* Quick Musician Cheatsheet for Selected Key */}
-                    {selectedHarpKey !== 'ALL' && (
-                        <div className="mt-4 pt-4 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-950/40 p-3 rounded-2xl">
-                            <div className="flex items-center flex-wrap gap-4 text-slate-300">
-                                <span className="font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                                    <Info size={14} /> Armónica en {selectedHarpKey}:
-                                </span>
-                                <span className="bg-slate-800/80 px-2.5 py-1 rounded-xl border border-white/5">
-                                    <b className="text-white">2da Posición (Blues/Cross):</b> Tema en <span className="text-amber-400 font-black">{calculateSongKey(selectedHarpKey, 2)}</span>
-                                </span>
-                                <span className="bg-slate-800/80 px-2.5 py-1 rounded-xl border border-white/5">
-                                    <b className="text-white">1ra Posición (Straight):</b> Tema en <span className="text-amber-400 font-black">{selectedHarpKey}</span>
-                                </span>
-                                <span className="bg-slate-800/80 px-2.5 py-1 rounded-xl border border-white/5">
-                                    <b className="text-white">3ra Posición (Menor):</b> Tema en <span className="text-amber-400 font-black">{calculateSongKey(selectedHarpKey, 3)}m</span>
-                                </span>
+                {/* HARMONICA KEY SELECTOR (COLLAPSIBLE) */}
+                <div className="rounded-3xl border border-white/5 bg-slate-900/70 backdrop-blur-md shadow-xl overflow-hidden transition-all">
+                    {/* Collapsible Header */}
+                    <div 
+                        onClick={() => setIsKeySelectorExpanded(!isKeySelectorExpanded)}
+                        className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-800/40 transition select-none"
+                    >
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center text-slate-300 border border-slate-700">
+                                <Disc3 size={16} />
                             </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                    Armónica:
+                                </span>
+                                <span className="px-2.5 py-0.5 rounded-lg bg-white text-slate-950 font-black text-sm shadow-sm">
+                                    {selectedHarpKey === 'ALL' ? 'Todas' : selectedHarpKey}
+                                </span>
+                                {selectedHarpKey !== 'ALL' && (
+                                    <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+                                        ({tracks.filter(t => t.harpKey === selectedHarpKey).length} temas)
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5">
+                            {selectedHarpKey !== 'ALL' && (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedHarpKey('ALL');
+                                    }}
+                                    className="text-xs font-bold text-slate-400 hover:text-white transition px-2.5 py-1 rounded-lg bg-slate-800/70 border border-slate-700"
+                                >
+                                    Ver todas
+                                </button>
+                            )}
                             <button
-                                onClick={() => openAddModal(selectedHarpKey)}
-                                className="text-amber-400 hover:text-amber-300 font-black flex items-center gap-1 text-[11px] uppercase tracking-wider"
+                                type="button"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs font-bold border border-slate-700/60 transition"
                             >
-                                <Plus size={14} /> Agregar tema en {selectedHarpKey}
+                                <span className="hidden xs:inline">{isKeySelectorExpanded ? 'Ocultar' : 'Cambiar clave'}</span>
+                                {isKeySelectorExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                             </button>
+                        </div>
+                    </div>
+
+                    {/* Expandable Key Grid & Position Cheatsheet */}
+                    {isKeySelectorExpanded && (
+                        <div className="p-4 pt-1 lg:p-6 lg:pt-1 border-t border-white/5 space-y-4">
+
+                    <p className="text-[11px] text-slate-400 font-medium">
+                                Elige la tonalidad de tu armónica para filtrar temas que puedes tocar ahora mismo:
+                            </p>
+
+                            {/* Key Buttons with high contrast neutral styling (avoiding amber to make Play pop) */}
+                            <div className="grid grid-cols-4 sm:grid-cols-7 lg:grid-cols-13 gap-2">
+                                <button
+                                    onClick={() => setSelectedHarpKey('ALL')}
+                                    className={`py-2.5 px-2 rounded-2xl font-black text-xs uppercase transition-all flex flex-col items-center justify-center border ${
+                                        selectedHarpKey === 'ALL'
+                                            ? 'bg-white text-slate-950 border-white shadow-lg scale-105'
+                                            : 'bg-slate-800/70 text-slate-300 border-white/5 hover:bg-slate-750 hover:text-white'
+                                    }`}
+                                >
+                                    <span className="text-sm">TODAS</span>
+                                    <span className={`text-[9px] font-semibold mt-0.5 ${selectedHarpKey === 'ALL' ? 'text-slate-600' : 'text-slate-500'}`}>{tracks.length}</span>
+                                </button>
+
+                                {POPULAR_HARP_KEYS.map(key => {
+                                    const count = tracks.filter(t => t.harpKey === key).length;
+                                    const isSelected = selectedHarpKey === key;
+                                    return (
+                                        <button
+                                            key={key}
+                                            onClick={() => setSelectedHarpKey(key)}
+                                            className={`py-2.5 px-2 rounded-2xl font-black transition-all flex flex-col items-center justify-center border ${
+                                                isSelected
+                                                    ? 'bg-white text-slate-950 border-white shadow-lg scale-105'
+                                                    : 'bg-slate-800/80 text-white border-white/5 hover:border-slate-600 hover:bg-slate-750'
+                                            }`}
+                                        >
+                                            <span className="text-base lg:text-lg font-black tracking-tight">{key}</span>
+                                            <span className={`text-[9px] font-bold mt-0.5 ${isSelected ? 'text-slate-600' : 'text-slate-400'}`}>
+                                                {count} {count === 1 ? 'tema' : 'temas'}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+
+                                {ALL_HARP_KEYS.filter(k => !POPULAR_HARP_KEYS.includes(k)).map(key => {
+                                    const count = tracks.filter(t => t.harpKey === key).length;
+                                    const isSelected = selectedHarpKey === key;
+                                    return (
+                                        <button
+                                            key={key}
+                                            onClick={() => setSelectedHarpKey(key)}
+                                            className={`py-2.5 px-2 rounded-2xl font-black transition-all flex flex-col items-center justify-center border ${
+                                                isSelected
+                                                    ? 'bg-white text-slate-950 border-white shadow-lg scale-105'
+                                                    : 'bg-slate-800/40 text-slate-400 border-white/5 hover:bg-slate-750 hover:text-white'
+                                            }`}
+                                        >
+                                            <span className="text-sm font-black">{key}</span>
+                                            <span className={`text-[9px] font-bold mt-0.5 ${isSelected ? 'text-slate-600' : 'opacity-70'}`}>{count}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Quick Musician Cheatsheet for Selected Key */}
+                            {selectedHarpKey !== 'ALL' && (
+                                <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-950/60 p-3 rounded-2xl">
+                                    <div className="flex items-center flex-wrap gap-2 sm:gap-3 text-slate-300">
+                                        <span className="font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                                            <Info size={14} className="text-slate-400" /> Armónica en {selectedHarpKey}:
+                                        </span>
+                                        <span className="bg-slate-800/90 px-2.5 py-1 rounded-xl border border-white/5">
+                                            <b className="text-white">2da Pos (Blues):</b> Tema en <b className="text-white underline">{calculateSongKey(selectedHarpKey, 2)}</b>
+                                        </span>
+                                        <span className="bg-slate-800/90 px-2.5 py-1 rounded-xl border border-white/5">
+                                            <b className="text-white">1ra Pos (Straight):</b> Tema en <b className="text-white underline">{selectedHarpKey}</b>
+                                        </span>
+                                        <span className="bg-slate-800/90 px-2.5 py-1 rounded-xl border border-white/5">
+                                            <b className="text-white">3ra Pos (Menor):</b> Tema en <b className="text-white underline">{calculateSongKey(selectedHarpKey, 3)}m</b>
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => openAddModal(selectedHarpKey)}
+                                        className="text-slate-300 hover:text-white font-bold flex items-center gap-1 text-[11px] uppercase tracking-wider bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-xl border border-slate-700 transition"
+                                    >
+                                        <Plus size={13} /> Agregar tema en {selectedHarpKey}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -779,9 +945,7 @@ export default function HarmonicaTracksCatalog() {
                                 <div>
                                     {/* Badges */}
                                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                                        <span className={`px-3 py-1 rounded-xl font-black text-xs tracking-wider uppercase shadow-md flex items-center gap-1.5 ${
-                                            isCarMode ? 'bg-amber-500 text-black' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                                        }`}>
+                                        <span className="px-3 py-1 rounded-xl font-black text-xs tracking-wider uppercase shadow-md flex items-center gap-1.5 bg-slate-800 text-slate-200 border border-slate-700">
                                             <Disc3 size={14} /> Armónica: {activeTrack.harpKey}
                                         </span>
                                         <span className="px-3 py-1 rounded-xl bg-slate-800 text-white font-black text-xs tracking-wider uppercase border border-white/10">
@@ -821,7 +985,7 @@ export default function HarmonicaTracksCatalog() {
                                         <button
                                             onClick={() => setIsShuffle(!isShuffle)}
                                             className={`p-3 rounded-2xl transition ${
-                                                isShuffle ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800/60 text-slate-500 hover:text-white'
+                                                isShuffle ? 'bg-slate-700 text-white shadow-sm ring-1 ring-white/20' : 'bg-slate-800/60 text-slate-400 hover:text-white'
                                             }`}
                                             title="Aleatorio"
                                         >
@@ -875,7 +1039,7 @@ export default function HarmonicaTracksCatalog() {
                                         <button
                                             onClick={() => setIsLooping(!isLooping)}
                                             className={`p-3 rounded-2xl transition ${
-                                                isLooping ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800/60 text-slate-500 hover:text-white'
+                                                isLooping ? 'bg-slate-700 text-white shadow-sm ring-1 ring-white/20' : 'bg-slate-800/60 text-slate-400 hover:text-white'
                                             }`}
                                             title="Repetir este tema indefinidamente"
                                         >
@@ -915,7 +1079,7 @@ export default function HarmonicaTracksCatalog() {
                         <p className="text-xs text-slate-500">Agrega tu primer enlace de YouTube para esta tonalidad o cambia de filtro.</p>
                         <button
                             onClick={() => openAddModal()}
-                            className="px-5 py-2.5 rounded-2xl bg-amber-500 text-black font-black text-xs uppercase tracking-wider inline-flex items-center gap-2 shadow-lg"
+                            className="px-5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider inline-flex items-center gap-2 border border-slate-600 shadow-md"
                         >
                             <Plus size={16} /> Agregar tema ahora
                         </button>
@@ -930,7 +1094,7 @@ export default function HarmonicaTracksCatalog() {
                             onClick={() => setSelectedPlaylist('ALL')}
                             className={`px-3.5 py-2 rounded-2xl font-black text-xs uppercase tracking-wider whitespace-nowrap transition border ${
                                 selectedPlaylist === 'ALL'
-                                    ? 'bg-amber-500 text-black border-amber-400 shadow-md'
+                                    ? 'bg-white text-slate-950 border-white shadow-md'
                                     : 'bg-slate-800/80 text-slate-300 border-white/5 hover:bg-slate-700'
                             }`}
                         >
