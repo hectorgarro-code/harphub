@@ -5,6 +5,7 @@ import {
     Save, Eye, Settings 
 } from 'lucide-react';
 import api from '../../services/api';
+import UniversalThumbnail from '../../common/UniversalThumbnail';
 
 const LessonEditor = ({ lessonId, initialBlocks = [], onSaveSuccess }) => {
     const [blocks, setBlocks] = useState(initialBlocks);
@@ -132,13 +133,13 @@ const LessonEditor = ({ lessonId, initialBlocks = [], onSaveSuccess }) => {
                                 <div className="space-y-4">
                                     <input 
                                         className="w-full bg-slate-950 border border-white/5 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-500/50"
-                                        placeholder="YouTube Video ID (ej: dQw4w9WgXcQ)"
+                                        placeholder="URL o ID de Video (YouTube, Shorts, TikTok, Instagram)"
                                         value={block.content.youtubeId}
                                         onChange={(e) => updateBlock(index, { youtubeId: e.target.value })}
                                     />
                                     {block.content.youtubeId && (
                                         <div className="aspect-video rounded-xl overflow-hidden border border-white/5 bg-black">
-                                            <img src={`https://img.youtube.com/vi/${block.content.youtubeId}/hqdefault.jpg`} className="w-full h-full object-cover opacity-50" alt="Preview" />
+                                            <UniversalThumbnail mediaUrl={block.content.youtubeId} className="w-full h-full" />
                                         </div>
                                     )}
                                 </div>

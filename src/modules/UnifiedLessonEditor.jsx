@@ -13,6 +13,7 @@ import {
     NOTES, HARP_FREQS 
 } from '../utils/constants';
 import YouTube from 'react-youtube';
+import UniversalVideoPlayer from '../components/common/UniversalVideoPlayer';
 import SharedScalesPanel from '../components/SharedScalesPanel';
 import { YinPitchDetector } from '../utils/pitchDetector';
 import { playHarpNote, getAudioContext, playTabSequence } from '../utils/audio';
@@ -191,7 +192,8 @@ const UnifiedLessonEditor = ({
             
             // Si el primer bloque es video, usar su URL para el youtubeId principal
             const videoBlock = lesson.blocks.find(b => b.type === 'video');
-            const cleanYtId = videoBlock ? getYouTubeId(videoBlock.content.url) : getYouTubeId(lesson.youtubeId);
+            const rawMedia = (videoBlock?.content?.url || lesson.youtubeId || '').trim();
+            const cleanYtId = getYouTubeId(rawMedia) || rawMedia;
 
             formData.append('title', lesson.title);
             formData.append('artist', lesson.artist);
@@ -627,7 +629,7 @@ const VideoBlockEditor = ({ block, isPreview, updateBlock, removeBlock, lesson, 
                     <div className="flex gap-4">
                         <div className="flex-1 relative">
                             <input
-                                placeholder="URL de YouTube"
+                                placeholder="URL de video (YouTube, Shorts, TikTok, Instagram)"
                                 value={block.content.url}
                                 onChange={e => {
                                     const url = e.target.value;
@@ -642,7 +644,7 @@ const VideoBlockEditor = ({ block, isPreview, updateBlock, removeBlock, lesson, 
                 )}
                 
                 <div className="space-y-6">
-                    <div className="aspect-video w-full bg-black rounded-[2rem] relative overflow-hidden border border-white/10 shadow-2xl">
+                    <div className="aspect-video w-full bg-black rounded-[2rem] relative overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center">
                         {getYouTubeId(block.content.url) ? (
                             <YouTube
                                 videoId={getYouTubeId(block.content.url)}
@@ -665,10 +667,16 @@ const VideoBlockEditor = ({ block, isPreview, updateBlock, removeBlock, lesson, 
                                     },
                                 }}
                             />
+                        ) : block.content.url ? (
+                            <UniversalVideoPlayer 
+                                mediaUrl={block.content.url}
+                                title={lesson.title}
+                                className="w-full h-full"
+                            />
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-slate-800">
                                 <Video size={48} className="mb-4" />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Pega un link de YouTube arriba</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest">Pega un link de YouTube, Shorts, TikTok o Instagram arriba</span>
                             </div>
                         )}
                     </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Plus, X, Video, Clock, Trash2, Disc, Music, Star, Save,
     Gauge, MapPin, FileText, Link as LinkIcon, Check, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { INSTRUMENTS, getYouTubeId, isTikTokUrl, getTikTokId } from '../utils/constants';
+import { INSTRUMENTS, getYouTubeId, isTikTokUrl, getTikTokId, isInstagramUrl, getInstagramCode } from '../utils/constants';
 
 const LessonGeneratorModal = ({
     setIsAdding, editingLessonId, selectedItem,
@@ -111,7 +111,7 @@ const LessonGeneratorModal = ({
             return true;
         };
 
-        if (mobileTab === 'media' && previewId && !isTikTokUrl(newLessonYoutubeId)) {
+        if (mobileTab === 'media' && previewId && !isTikTokUrl(newLessonYoutubeId) && !isInstagramUrl(newLessonYoutubeId)) {
             // Asegurar que la API esté cargada
             if (!window.YT || !window.YT.Player) {
                 if (!document.getElementById('yt-api-script')) {
@@ -203,7 +203,7 @@ const LessonGeneratorModal = ({
                             <input
                                 name="youtubeId"
                                 value={newLessonYoutubeId}
-                                placeholder="https://www.youtube.com/watch?v=..."
+                                placeholder="https://www.youtube.com/..., Shorts, TikTok o Instagram"
                                 required
                                 onChange={(e) => setNewLessonYoutubeId(e.target.value)}
                                 className={inputCls + " !py-2.5 !px-3 font-mono text-xs"}
@@ -225,13 +225,16 @@ const LessonGeneratorModal = ({
                     </div>
                     
                     {previewId && (
-                        <div className={`mx-auto bg-slate-950 border border-slate-800 rounded-[1.5rem] overflow-hidden shadow-inner relative group ${isTikTokUrl(previewId) ? 'w-[320px]' : 'w-full max-w-[622px]'}`}>
-                            <div key={isTikTokUrl(previewId) ? 'tiktok-container' : 'youtube-container'} className={`relative bg-black flex items-center justify-center transition-all ${isTikTokUrl(previewId) ? 'h-[480px]' : 'aspect-video'}`}>
-                                {isTikTokUrl(previewId)
-                                    ? <iframe key="tiktok-frame" src={`https://www.tiktok.com/embed/v2/${getTikTokId(previewId)}`} className="w-full h-full" frameBorder="0" allow="fullscreen" />
-                                    : <div key="youtube-el" id="yt-preview-player" className="w-full h-full" />
-                                }
-                                {!ytReady && !isTikTokUrl(previewId) && (
+                        <div className={`mx-auto bg-slate-950 border border-slate-800 rounded-[1.5rem] overflow-hidden shadow-inner relative group ${(isTikTokUrl(previewId) || isInstagramUrl(previewId)) ? 'w-[320px]' : 'w-full max-w-[622px]'}`}>
+                            <div key={isTikTokUrl(previewId) ? 'tiktok-container' : isInstagramUrl(previewId) ? 'instagram-container' : 'youtube-container'} className={`relative bg-black flex items-center justify-center transition-all ${(isTikTokUrl(previewId) || isInstagramUrl(previewId)) ? 'h-[480px]' : 'aspect-video'}`}>
+                                {isTikTokUrl(previewId) ? (
+                                    <iframe key="tiktok-frame" src={`https://www.tiktok.com/embed/v2/${getTikTokId(previewId)}`} className="w-full h-full" frameBorder="0" allow="fullscreen" />
+                                ) : isInstagramUrl(previewId) ? (
+                                    <iframe key="instagram-frame" src={`https://www.instagram.com/reel/${getInstagramCode(previewId)}/embed/`} className="w-full h-full" frameBorder="0" allow="fullscreen" />
+                                ) : (
+                                    <div key="youtube-el" id="yt-preview-player" className="w-full h-full" />
+                                )}
+                                {!ytReady && !isTikTokUrl(previewId) && !isInstagramUrl(previewId) && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-sm z-10">
                                         <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-500 rounded-full animate-spin mb-3" />
                                         <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">Sincronizando Player...</p>
@@ -241,7 +244,7 @@ const LessonGeneratorModal = ({
                         </div>
                     )}
 
-                    {previewId && !isTikTokUrl(newLessonYoutubeId) && (
+                    {previewId && !isTikTokUrl(newLessonYoutubeId) && !isInstagramUrl(newLessonYoutubeId) && (
                         <div className="flex items-center justify-between px-2">
                             <div className="flex items-center gap-2">
                                 <span className={`text-[9px] font-black uppercase tracking-widest ${ytReady ? 'text-emerald-500' : 'text-amber-500'}`}>

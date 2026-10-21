@@ -10,6 +10,7 @@ import {
 import { Link } from 'react-router-dom';
 import CollectionModal from '../components/collections/CollectionModal';
 import { getYouTubeId } from '../utils/constants';
+import UniversalThumbnail from '../components/common/UniversalThumbnail';
 
 export default function LibraryPage({ setIsAdding }) {
     const { user } = useAuth();
@@ -429,13 +430,6 @@ export default function LibraryPage({ setIsAdding }) {
                                     {isExpanded && (
                                         <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 border-t border-white/5 bg-black/20">
                                             {group.lessons.map(lesson => {
-                                                const ytId = getYouTubeId(lesson.youtubeId || lesson.youtube_id || '');
-                                                const thumb = ytId 
-                                                    ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` 
-                                                    : lesson.cover_image 
-                                                        ? (lesson.cover_image.startsWith('http') ? lesson.cover_image : `/backend/uploads/${lesson.cover_image}`)
-                                                        : null;
-
                                                 return (
                                                     <Link 
                                                         key={lesson.id} 
@@ -443,13 +437,13 @@ export default function LibraryPage({ setIsAdding }) {
                                                         className="group/card flex flex-col bg-slate-900/40 border border-white/5 rounded-[2rem] overflow-hidden hover:bg-slate-900 hover:border-blue-500/30 transition-all duration-500 shadow-xl hover:shadow-blue-500/10"
                                                     >
                                                         <div className="aspect-video relative overflow-hidden bg-slate-800">
-                                                            {thumb ? (
-                                                                <img src={thumb} className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110" alt={lesson.title || 'Lección'} />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center">
-                                                                    <Play size={40} className="text-slate-700 group-hover/card:text-blue-500 transition-colors" />
-                                                                </div>
-                                                            )}
+                                                            <UniversalThumbnail 
+                                                                mediaUrl={lesson.youtubeId || lesson.youtube_id} 
+                                                                coverImage={lesson.cover_image} 
+                                                                title={lesson.title} 
+                                                                gpFile={lesson.gpFile}
+                                                                className="w-full h-full"
+                                                            />
                                                             <div className="absolute inset-0 bg-black/20 group-hover/card:bg-transparent transition-colors"></div>
                                                             
                                                             {/* Delete action overlay */}

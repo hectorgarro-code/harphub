@@ -135,6 +135,7 @@ try {
     try { $pdo->exec("ALTER TABLE practice_submissions ADD INDEX idx_submissions_user_id (user_id)"); } catch (PDOException $e) {}
     try { $pdo->exec("ALTER TABLE learning_paths ADD INDEX idx_paths_creator_id (creator_id)"); } catch (PDOException $e) {}
     try { $pdo->exec("DELETE FROM lessons WHERE title IS NULL OR TRIM(title) = ''"); } catch (PDOException $e) {}
+    try { $pdo->exec("ALTER TABLE lessons MODIFY COLUMN youtubeId VARCHAR(500)"); } catch (PDOException $e) {}
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS lesson_blocks (
         id INT AUTO_INCREMENT PRIMARY KEY,

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Play, Music, Youtube, LayoutList, ChevronUp, ChevronDown, KeyRound, Type, AlignLeft, Search, Filter, Piano, Guitar, Mic2, Drum, Star, Check, Clock, X, ChevronsUp, Plus } from 'lucide-react';
 import { CATEGORIES, INSTRUMENTS, getYouTubeId, isTikTokUrl } from '../utils/constants';
+import UniversalThumbnail from './common/UniversalThumbnail';
 
 const LessonDashboardList = ({ items, setSelectedItem, patchItem, onAddLesson, forcedOpenCategory }) => {
     const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
@@ -289,27 +290,13 @@ const LessonDashboardList = ({ items, setSelectedItem, patchItem, onAddLesson, f
                                             >
                                                 {/* Thumbnail Area */}
                                                 <div className="aspect-video w-full bg-slate-950 relative overflow-hidden shrink-0">
-                                                    {ytId && ytId.length === 11 ? (
-                                                        <img 
-                                                            src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`} 
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100" 
-                                                            alt={item.title}
-                                                            onError={(e) => { 
-                                                                e.target.onerror = null; 
-                                                                e.target.src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=400&auto=format&fit=crop';
-                                                            }}
-                                                        />
-                                                    ) : item.gpFile ? (
-                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-blue-600/10 group-hover:bg-blue-600/20 transition-colors">
-                                                            <Music size={48} className="text-blue-500/20 mb-2 group-hover:scale-110 transition-transform" />
-                                                            <span className="text-[10px] font-black text-blue-500/40 uppercase tracking-widest">Partitura GP</span>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900/50 group-hover:bg-slate-800 transition-colors">
-                                                            <CatIcon size={48} className="text-slate-700/20 mb-2 group-hover:scale-110 transition-transform" />
-                                                            <span className="text-[8px] font-black text-slate-700/40 uppercase tracking-widest">Lección Local</span>
-                                                        </div>
-                                                    )}
+                                                    <UniversalThumbnail 
+                                                        mediaUrl={item.youtubeId} 
+                                                        coverImage={item.cover_image} 
+                                                        title={item.title} 
+                                                        gpFile={item.gpFile}
+                                                        className="w-full h-full"
+                                                    />
 
                                                     {/* Overlays */}
                                                     {item.duration && (

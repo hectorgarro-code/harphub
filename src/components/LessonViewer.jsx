@@ -13,6 +13,8 @@ import SEAVirtualKeyboard from './SEA/SEAVirtualKeyboard';
 import SEAMeasureMonitor from './SEA/SEAMeasureMonitor';
 import SEATabLibrary from './SEA/SEATabLibrary';
 import SharedScalesPanel from './SharedScalesPanel';
+import UniversalVideoPlayer from './common/UniversalVideoPlayer';
+import UniversalThumbnail from './common/UniversalThumbnail';
 
 const LessonViewer = ({
     selectedItem,
@@ -344,8 +346,13 @@ const LessonViewer = ({
                             </div>
                         ) : selectedItem.youtubeId ? (
                             <div className="w-full h-full flex flex-col">
-                                <div className="bg-black w-full relative shrink-0 aspect-video" id="yt-container">
-                                    <iframe id={`yt-player-${selectedItem.id}`} width="100%" height="100%" src={`https://www.youtube.com/embed/${getYouTubeId(selectedItem.youtubeId)}?enablejsapi=1&origin=${window.location.origin}`} frameBorder="0" allowFullScreen></iframe>
+                                <div className="bg-black w-full relative shrink-0 aspect-video flex items-center justify-center overflow-hidden" id="yt-container">
+                                    <UniversalVideoPlayer 
+                                        mediaUrl={selectedItem.youtubeId} 
+                                        title={selectedItem.title}
+                                        playerId={`yt-player-${selectedItem.id}`}
+                                        className="w-full h-full"
+                                    />
                                     
                                     {/* Botón flotante para añadir marcador */}
                                     <button 
@@ -356,15 +363,17 @@ const LessonViewer = ({
                                         <span className="text-xs uppercase tracking-widest">Marcar Punto</span>
                                     </button>
                                 </div>
-                                <div className="flex items-center gap-2 p-4 bg-slate-950/50 border-t border-slate-800 shrink-0 overflow-x-auto custom-scrollbar">
-                                    <Gauge size={14} className="text-slate-500 ml-2 shrink-0" />
-                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2 shrink-0">Velocidad:</span>
+                                {getYouTubeId(selectedItem.youtubeId) && (
+                                    <div className="flex items-center gap-2 p-4 bg-slate-950/50 border-t border-slate-800 shrink-0 overflow-x-auto custom-scrollbar">
+                                        <Gauge size={14} className="text-slate-500 ml-2 shrink-0" />
+                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2 shrink-0">Velocidad:</span>
                                         {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 2].map(rate => (
                                             <button key={rate} onClick={() => updatePlaybackRate(rate)} className={`py-1.5 px-3 text-[10px] font-bold rounded-xl transition whitespace-nowrap ${playbackRate === rate ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>
                                                 {rate}x
                                             </button>
                                         ))}
                                     </div>
+                                )}
                             </div>
                         ) : (
                             <div className="aspect-video bg-slate-950 flex flex-col items-center justify-center p-8 relative">
@@ -826,15 +835,13 @@ const LessonViewer = ({
                     {filteredItems.filter(i => i.id !== selectedItem.id).slice(0, 4).map(item => (
                         <div key={item.id} onClick={() => setSelectedItem(item)} className="bg-slate-900 border border-slate-800 rounded-3xl p-4 cursor-pointer hover:border-blue-500 transition group shadow-lg">
                             <div className="aspect-video bg-slate-950 rounded-xl mb-3 overflow-hidden relative border border-slate-800 shadow-inner">
-                                {item.youtubeId && !isTikTokUrl(item.youtubeId) && getYouTubeId(item.youtubeId).length === 11 ? (
-                                    <img 
-                                        src={`https://img.youtube.com/vi/${getYouTubeId(item.youtubeId)}/hqdefault.jpg`} 
-                                        className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition" 
-                                        onError={(e) => { e.target.style.display = 'none'; }}
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center bg-slate-800"><Music size={32} className="text-blue-500 opacity-50" /></div>
-                                )}
+                                <UniversalThumbnail 
+                                    mediaUrl={item.youtubeId} 
+                                    coverImage={item.cover_image} 
+                                    title={item.title} 
+                                    gpFile={item.gpFile}
+                                    className="w-full h-full"
+                                />
                             </div>
                             <h4 className="font-bold text-white text-xs truncate">{item.title}</h4>
                             <p className="text-[10px] text-blue-500 font-bold uppercase mt-1 tracking-widest">{item.category}</p>

@@ -48,60 +48,17 @@ export const ROUTINE_STEPS = [
     { id: 'jam', label: 'Improvisación Blues', duration: 300, tool: 'blues' }
 ];
 
-export const isTikTokUrl = (url) => {
-    return false; // Todos los enlaces se interpretan como video de YouTube
-};
-
-export const getTikTokId = (url) => {
-    return getYouTubeId(url);
-};
-
-export const getYouTubeId = (url) => {
-    if (!url) return '';
-    const trimmed = String(url).trim();
-    
-    // Si ya es un ID de 11 caracteres (sin / ? : .)
-    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
-        return trimmed;
-    }
-    
-    // 1. YouTube Shorts (ej: youtube.com/shorts/VIDEO_ID o m.youtube.com/shorts/VIDEO_ID)
-    const shortsMatch = trimmed.match(/(?:youtube\.com\/shorts\/|m\.youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/i);
-    if (shortsMatch && shortsMatch[1]) {
-        return shortsMatch[1];
-    }
-
-    // 2. YouTube Standard, Embed, watch o short link (youtu.be)
-    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i;
-    const match = trimmed.match(regExp);
-    if (match && match[1]) {
-        return match[1];
-    }
-
-    // 3. Extracción vía objeto URL
-    try {
-        const urlStr = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
-        const urlObj = new URL(urlStr);
-        const v = urlObj.searchParams.get('v');
-        if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
-
-        const pathParts = urlObj.pathname.split('/').filter(Boolean);
-        for (let i = pathParts.length - 1; i >= 0; i--) {
-            const part = pathParts[i];
-            if (/^[a-zA-Z0-9_-]{11}$/.test(part)) {
-                return part;
-            }
-        }
-    } catch (e) {}
-
-    // 4. Fallback final: Buscar cualquier secuencia de 11 caracteres alfanuméricos/guiones
-    const generic11Match = trimmed.match(/([a-zA-Z0-9_-]{11})/);
-    if (generic11Match && generic11Match[1]) {
-        return generic11Match[1];
-    }
-
-    return '';
-};
+export { 
+    isTikTokUrl, 
+    getTikTokId, 
+    getYouTubeId, 
+    isYouTubeUrl, 
+    isYouTubeShorts, 
+    isInstagramUrl, 
+    getInstagramCode, 
+    detectMediaType, 
+    getMediaInfo 
+} from './mediaEmbed';
 
 export const BLUES_DRUM_PATTERNS = [
     { id: 'chicago', name: 'Chicago Shuffle', defaultBpm: 110, kicks: [0, 6], snares: [3, 9], hats: [0, 2, 3, 5, 6, 8, 9, 11] },
