@@ -83,7 +83,14 @@ const WebLessonLayout = ({
     const renderBlockContent = (block) => {
         const type = block.type;
         switch (type) {
-            case 'video': return videoComponent;
+            case 'video': {
+                if (React.isValidElement(videoComponent)) {
+                    return React.cloneElement(videoComponent, {
+                        lessonBookmarks: lesson?.video_bookmarks || block.content?.bookmarks
+                    });
+                }
+                return videoComponent;
+            }
             case 'tab':
             case 'gp-tab': return tabComponent;
             case 'notes': return notesComponent;
@@ -186,7 +193,7 @@ const WebLessonLayout = ({
                                 {/* Decorative Background Elements */}
                                 <div className="absolute -inset-4 bg-gradient-to-tr from-blue-500/5 via-transparent to-indigo-500/5 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
                                 
-                                <div className={`relative bg-slate-900/40 rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl backdrop-blur-xl ring-1 ring-white/5 ${block.type === 'video' ? 'aspect-video' : (block.type === 'tab' || block.type === 'gp-tab') ? 'min-h-[600px] h-[600px]' : ''}`}>
+                                <div className={`relative bg-slate-900/40 rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl backdrop-blur-xl ring-1 ring-white/5 ${(block.type === 'tab' || block.type === 'gp-tab') ? 'min-h-[600px] h-[600px]' : ''}`}>
                                     {renderBlockContent(block)}
                                 </div>
                             </div>

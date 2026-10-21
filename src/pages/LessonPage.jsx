@@ -227,7 +227,7 @@ export default function LessonPage({
                         {activeTab === 'lesson' && (
                             <WebLessonLayout 
                                 lesson={lesson}
-                                videoComponent={<WorkspaceVideoPanel youtubeId={lesson.youtubeId} title={lesson.title} />}
+                                videoComponent={<WorkspaceVideoPanel youtubeId={lesson.youtubeId} title={lesson.title} lessonBookmarks={lesson.video_bookmarks} />}
                                 tabComponent={<AlphaTabPanel gpFile={lesson.gpFile} />}
                                 notesComponent={<WorkspaceNotesPanel lessonNotes={lesson.personal_notes} />}
                                 blocksComponent={<WorkspaceBlocksPanel blocks={blocks} />}

@@ -2593,10 +2593,23 @@ try {
 
         if ($action === 'add_workspace_bookmark') {
             $workspace_id = get_int($data['workspace_id'] ?? 0);
-            $type = $data['type'] ?? 'global';
+            $user_id = get_int($data['user_id'] ?? 0);
+            $lesson_id = get_int($data['lesson_id'] ?? 0);
+            $type = $data['type'] ?? 'video';
             $title = $data['title'] ?? 'New Bookmark';
             $position = $data['position'] ?? '';
-            $metadata = isset($data['metadata']) ? json_encode($data['metadata']) : null;
+            $metadata = isset($data['metadata']) ? (is_string($data['metadata']) ? $data['metadata'] : json_encode($data['metadata'])) : null;
+
+            if (!$workspace_id && $user_id && $lesson_id) {
+                $stmt = $pdo->prepare("SELECT id FROM user_workspaces WHERE user_id = ? AND lesson_id = ?");
+                $stmt->execute([$user_id, $lesson_id]);
+                $workspace_id = $stmt->fetchColumn();
+                if (!$workspace_id) {
+                    $stmt = $pdo->prepare("INSERT INTO user_workspaces (user_id, lesson_id) VALUES (?, ?)");
+                    $stmt->execute([$user_id, $lesson_id]);
+                    $workspace_id = $pdo->lastInsertId();
+                }
+            }
 
             if (!$workspace_id) {
                 echo json_encode(['error' => 'Missing workspace_id']);
@@ -2606,7 +2619,23 @@ try {
             $stmt = $pdo->prepare("INSERT INTO workspace_bookmarks (workspace_id, type, title, position, metadata) VALUES (?, ?, ?, ?, ?)");
             $stmt->execute([$workspace_id, $type, $title, $position, $metadata]);
 
-            echo json_encode(['success' => true, 'bookmark_id' => $pdo->lastInsertId()]);
+            echo json_encode([
+                'success' => true, 
+                'bookmark_id' => $pdo->lastInsertId(),
+                'workspace_id' => $workspace_id
+            ]);
+            exit;
+        }
+
+        if ($action === 'delete_workspace_bookmark') {
+            $bookmark_id = get_int($data['id'] ?? 0);
+            if ($bookmark_id) {
+                $stmt = $pdo->prepare("DELETE FROM workspace_bookmarks WHERE id = ?");
+                $stmt->execute([$bookmark_id]);
+                echo json_encode(['success' => true]);
+                exit;
+            }
+            echo json_encode(['error' => 'Missing bookmark id']);
             exit;
         }
 

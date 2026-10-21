@@ -52,8 +52,29 @@ export const WorkspaceProvider = ({ children, lessonId, userId, initialData, les
         playbackSpeed: 1
     });
 
+    useEffect(() => {
+        if (initialData?.id) setWorkspaceId(initialData.id);
+        if (initialData?.bookmarks) {
+            setBookmarks(initialData.bookmarks);
+        } else if (lessonId) {
+            try {
+                const cached = localStorage.getItem(`harphub_bookmarks_${lessonId}_${userId || 'guest'}`);
+                if (cached) setBookmarks(JSON.parse(cached));
+            } catch (e) {}
+        }
+    }, [initialData, lessonId, userId]);
+
     const [notes, setNotes] = useState(initialData?.notes || []);
-    const [bookmarks, setBookmarks] = useState(initialData?.bookmarks || []);
+    const [bookmarks, setBookmarks] = useState(() => {
+        if (initialData?.bookmarks && initialData.bookmarks.length > 0) return initialData.bookmarks;
+        if (lessonId) {
+            try {
+                const cached = localStorage.getItem(`harphub_bookmarks_${lessonId}_${userId || 'guest'}`);
+                if (cached) return JSON.parse(cached);
+            } catch (e) {}
+        }
+        return [];
+    });
     const [isSaving, setIsSaving] = useState(false);
 
     // Lógica de Bloques / Paneles Activos
@@ -102,26 +123,67 @@ export const WorkspaceProvider = ({ children, lessonId, userId, initialData, les
     };
 
     const addBookmark = async (type, title, position, metadata = {}) => {
-        if (!workspaceId) return;
+        const newBookmark = {
+            id: Date.now(),
+            type,
+            title,
+            position: String(position || ''),
+            metadata: typeof metadata === 'string' ? JSON.parse(metadata) : metadata
+        };
+
+        const updated = [...bookmarks, newBookmark];
+        setBookmarks(updated);
+
+        if (lessonId) {
+            try {
+                localStorage.setItem(`harphub_bookmarks_${lessonId}_${userId || 'guest'}`, JSON.stringify(updated));
+            } catch (e) {}
+        }
+
         try {
             const data = await api.request('add_workspace_bookmark', 'POST', {
                 workspace_id: workspaceId,
+                user_id: userId,
+                lesson_id: lessonId,
                 type,
                 title,
-                position,
+                position: String(position || ''),
                 metadata
             });
             if (data && data.success) {
-                setBookmarks([...bookmarks, { id: data.bookmark_id, type, title, position, metadata }]);
+                if (data.workspace_id && !workspaceId) {
+                    setWorkspaceId(data.workspace_id);
+                }
+                if (data.bookmark_id) {
+                    newBookmark.id = data.bookmark_id;
+                    const synced = updated.map(b => b === newBookmark ? { ...b, id: data.bookmark_id } : b);
+                    setBookmarks(synced);
+                    if (lessonId) {
+                        try {
+                            localStorage.setItem(`harphub_bookmarks_${lessonId}_${userId || 'guest'}`, JSON.stringify(synced));
+                        } catch (e) {}
+                    }
+                }
             }
         } catch (error) {
-            console.error('Error adding bookmark:', error);
+            console.error('Error adding bookmark to backend:', error);
         }
+        return newBookmark;
     };
 
     const deleteBookmark = async (id) => {
-        // Implementación futura
-        setBookmarks(bookmarks.filter(b => b.id !== id));
+        const updated = bookmarks.filter(b => b.id !== id);
+        setBookmarks(updated);
+        if (lessonId) {
+            try {
+                localStorage.setItem(`harphub_bookmarks_${lessonId}_${userId || 'guest'}`, JSON.stringify(updated));
+            } catch (e) {}
+        }
+        try {
+            await api.request('delete_workspace_bookmark', 'POST', { id });
+        } catch (error) {
+            console.error('Error deleting bookmark from backend:', error);
+        }
     };
 
     return (
