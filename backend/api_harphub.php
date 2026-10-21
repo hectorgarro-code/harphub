@@ -134,6 +134,7 @@ try {
     try { $pdo->exec("ALTER TABLE activities ADD INDEX idx_activities_user_id (user_id)"); } catch (PDOException $e) {}
     try { $pdo->exec("ALTER TABLE practice_submissions ADD INDEX idx_submissions_user_id (user_id)"); } catch (PDOException $e) {}
     try { $pdo->exec("ALTER TABLE learning_paths ADD INDEX idx_paths_creator_id (creator_id)"); } catch (PDOException $e) {}
+    try { $pdo->exec("DELETE FROM lessons WHERE title IS NULL OR TRIM(title) = ''"); } catch (PDOException $e) {}
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS lesson_blocks (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1405,11 +1406,13 @@ try {
             http_response_code(400);
             echo json_encode(['error' => 'Invalid data']);
             exit;
+        $action = sanitize_string($data['action'] ?? $_GET['action'] ?? $_POST['action'] ?? '');
+
+        if (!$action) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Missing action']);
+            exit;
         }
-
-        $action = sanitize_string($data['action'] ?? 'add_lesson');
-
-        if ($action === 'upload_audio') {
             if (!isset($_FILES['audio'])) {
                 http_response_code(400); echo json_encode(['error' => 'No file uploaded']); exit;
             }
@@ -2391,7 +2394,7 @@ try {
             $allowedFields = [
                 'title', 'youtubeId', 'category', 'instrument', 'artist', 
                 'description', 'practiceTab', 'difficulty', 'harmonica_key', 
-                'video_bookmarks', 'personal_notes', 'duration', 'completed'
+                'video_bookmarks', 'personal_notes', 'duration', 'completed', 'workspace_config'
             ];
 
             $updates = [];
@@ -2402,7 +2405,7 @@ try {
                     $value = $data[$field];
                     if (is_array($value)) {
                         $value = json_encode($value);
-                    } else if (is_string($value)) {
+                    } else if (is_string($value) && $field !== 'workspace_config') {
                         $value = sanitize_string($value);
                     }
                     $updates[] = "$field = ?";
@@ -2447,6 +2450,11 @@ try {
             if ($action === 'add_lesson') {
                 // For add_lesson we still use a full insert with defaults
                 $title = sanitize_string($data['title'] ?? ($_POST['title'] ?? ''));
+                if (empty($title)) {
+                    http_response_code(400);
+                    echo json_encode(['error' => 'El título de la lección no puede estar vacío']);
+                    exit;
+                }
                 $youtubeId = sanitize_string($data['youtubeId'] ?? ($_POST['youtubeId'] ?? ''));
                 $category = sanitize_string($data['category'] ?? ($_POST['category'] ?? 'daily'));
                 $instrument = sanitize_string($data['instrument'] ?? ($_POST['instrument'] ?? 'harmonica'));

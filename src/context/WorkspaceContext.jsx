@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from '../services/api';
 
 const WorkspaceContext = createContext();
 
@@ -71,15 +72,11 @@ export const WorkspaceProvider = ({ children, lessonId, userId, initialData, les
         if (!userId || !lessonId) return;
         setIsSaving(true);
         try {
-            await fetch('/backend/api_harphub.php?action=save_workspace_state', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    lesson_id: lessonId,
-                    layout_config: layoutConfig,
-                    settings: settings
-                })
+            await api.request('save_workspace_state', 'POST', {
+                user_id: userId,
+                lesson_id: lessonId,
+                layout_config: layoutConfig,
+                settings: settings
             });
         } catch (error) {
             console.error('Error saving workspace state:', error);
@@ -91,13 +88,12 @@ export const WorkspaceProvider = ({ children, lessonId, userId, initialData, les
     const addNote = async (content, metadata = {}) => {
         if (!workspaceId) return;
         try {
-            const resp = await fetch('/backend/api_harphub.php?action=save_workspace_note', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ workspace_id: workspaceId, content, metadata })
+            const data = await api.request('save_workspace_note', 'POST', {
+                workspace_id: workspaceId,
+                content,
+                metadata
             });
-            const data = await resp.json();
-            if (data.success) {
+            if (data && data.success) {
                 setNotes([{ id: data.note_id, content, metadata, created_at: new Date().toISOString() }, ...notes]);
             }
         } catch (error) {
@@ -108,13 +104,14 @@ export const WorkspaceProvider = ({ children, lessonId, userId, initialData, les
     const addBookmark = async (type, title, position, metadata = {}) => {
         if (!workspaceId) return;
         try {
-            const resp = await fetch('/backend/api_harphub.php?action=add_workspace_bookmark', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ workspace_id: workspaceId, type, title, position, metadata })
+            const data = await api.request('add_workspace_bookmark', 'POST', {
+                workspace_id: workspaceId,
+                type,
+                title,
+                position,
+                metadata
             });
-            const data = await resp.json();
-            if (data.success) {
+            if (data && data.success) {
                 setBookmarks([...bookmarks, { id: data.bookmark_id, type, title, position, metadata }]);
             }
         } catch (error) {

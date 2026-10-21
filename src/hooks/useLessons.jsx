@@ -42,7 +42,15 @@ export function useLessons(user) {
     };
 
     const updateItem = async (updatedItem) => {
-        const result = await api.updateLesson(updatedItem);
+        let finalData = updatedItem;
+        if (updatedItem instanceof FormData) {
+            if (user?.id && !finalData.has('user_id')) {
+                finalData.append('user_id', user.id);
+            }
+        } else if (updatedItem && typeof updatedItem === 'object') {
+            finalData = { ...updatedItem, user_id: user?.id };
+        }
+        const result = await api.updateLesson(finalData);
         if (result.success) {
             refreshLessons();
         }

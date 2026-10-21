@@ -15,7 +15,11 @@ const api = {
             const params = new URLSearchParams({ action, ...data });
             url += `?${params.toString()}`;
         } else {
+            url += `?action=${encodeURIComponent(action)}`;
             if (data instanceof FormData) {
+                if (!data.has('action') && action) {
+                    data.append('action', action);
+                }
                 options.body = data;
                 // No poner Content-Type, el navegador lo hará con el boundary correcto
             } else {

@@ -223,8 +223,8 @@ export default function App() {
                 <UnifiedLessonEditor 
                     setIsAdding={setIsAdding}
                     addItem={async (d) => {
-                        const res = await addItem(d);
-                        if (res.success) {
+                        const res = selectedItem?.id ? await updateItem(d) : await addItem(d);
+                        if (res && res.success) {
                             setIsAdding(false);
                             setSelectedItem(null);
                             window.dispatchEvent(new CustomEvent('lesson-updated', { detail: { id: res.id || selectedItem?.id } }));
