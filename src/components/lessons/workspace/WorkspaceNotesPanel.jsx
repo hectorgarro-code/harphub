@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useWorkspace } from '../../../context/WorkspaceContext';
 import { Save, Plus, Clock, FileText } from 'lucide-react';
 
-const WorkspaceNotesPanel = () => {
+const WorkspaceNotesPanel = ({ lessonNotes }) => {
     const { notes, addNote, isSaving } = useWorkspace();
     const [currentNote, setCurrentNote] = useState('');
 
@@ -35,7 +35,17 @@ const WorkspaceNotesPanel = () => {
 
             {/* Notes List */}
             <div className="flex-1 overflow-auto p-4 space-y-4">
-                {notes.length === 0 ? (
+                {lessonNotes && (
+                    <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-4">
+                        <div className="text-[9px] font-black uppercase tracking-widest text-emerald-400 mb-2">
+                            Notas del Creador
+                        </div>
+                        <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+                            {lessonNotes}
+                        </p>
+                    </div>
+                )}
+                {notes.length === 0 && !lessonNotes ? (
                     <div className="flex flex-col items-center justify-center h-full opacity-20 py-10">
                         <FileText size={48} className="mb-4" />
                         <p className="text-xs font-black uppercase tracking-[0.2em]">No hay notas personales</p>

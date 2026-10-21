@@ -1,8 +1,10 @@
 import React from 'react';
 import { useWorkspace } from '../../../context/WorkspaceContext';
-import { Check, Link as LinkIcon, FileText, ChevronRight, Music, Video, Activity, FileJson } from 'lucide-react';
+import { Check, Link as LinkIcon, FileText, ChevronRight, Music, Video, Activity, FileJson, CheckCircle2 } from 'lucide-react';
+import SeaTabBlock from '../blocks/SeaTabBlock';
 
 const WebLessonLayout = ({ 
+    lesson,
     videoComponent, 
     tabComponent, 
     notesComponent, 
@@ -14,18 +16,114 @@ const WebLessonLayout = ({
     isCompleted,
     toggleCompleted
 }) => {
-    const { webBlocks } = useWorkspace();
+    const { webBlocks, notes } = useWorkspace();
 
-    const renderBlockContent = (type) => {
+    const hasBlockContent = (block) => {
+        if (!block) return false;
+
+        // Si el bloque tiene links o attachments adjuntos, tiene contenido
+        const hasDirectLinks = Array.isArray(block.links) && block.links.length > 0;
+        const hasDirectAttachments = Array.isArray(block.attachments) && block.attachments.length > 0;
+        if (hasDirectLinks || hasDirectAttachments) return true;
+
+        const type = block.type;
+        switch (type) {
+            case 'video': {
+                const yt = (lesson?.youtubeId || block.content?.url || '').trim();
+                return Boolean(yt);
+            }
+            case 'tab':
+            case 'gp-tab': {
+                const gp = (lesson?.gpFile || block.content?.url || block.content?.file || '').trim();
+                return Boolean(gp);
+            }
+            case 'sea':
+            case 'sea-tab': {
+                const sea = (lesson?.practiceTab || block.content?.code || block.content?.tab || '').trim();
+                return Boolean(sea);
+            }
+            case 'notes': {
+                const noteText = (lesson?.personal_notes || block.content?.text || '').trim();
+                const userNotesCount = Array.isArray(notes) ? notes.length : 0;
+                return Boolean(noteText || userNotesCount > 0);
+            }
+            case 'attachments': {
+                const blockFiles = Array.isArray(block.content?.files) ? block.content.files.length : 0;
+                let lessonFilesCount = 0;
+                try {
+                    if (lesson?.attachments) {
+                        const parsed = typeof lesson.attachments === 'string' ? JSON.parse(lesson.attachments) : lesson.attachments;
+                        if (Array.isArray(parsed)) lessonFilesCount = parsed.length;
+                    }
+                } catch (e) {}
+                return blockFiles > 0 || lessonFilesCount > 0;
+            }
+            case 'links': {
+                const items = Array.isArray(block.content?.items) ? block.content.items.length : 0;
+                return items > 0;
+            }
+            case 'checkpoints': {
+                const items = Array.isArray(block.content?.items) ? block.content.items : [];
+                return items.some(it => it && it.text && it.text.trim());
+            }
+            case 'practice': {
+                const tools = Array.isArray(block.content?.tools) ? block.content.tools.length : 0;
+                const exercises = Array.isArray(block.content?.exercises) ? block.content.exercises.length : 0;
+                const text = (block.content?.text || '').trim();
+                return tools > 0 || exercises > 0 || Boolean(text);
+            }
+            case 'text':
+            default: {
+                const text = (block.content?.text || '').trim();
+                return Boolean(text);
+            }
+        }
+    };
+
+    const renderBlockContent = (block) => {
+        const type = block.type;
         switch (type) {
             case 'video': return videoComponent;
-            case 'tab': return tabComponent;
+            case 'tab':
+            case 'gp-tab': return tabComponent;
             case 'notes': return notesComponent;
             case 'blocks': return blocksComponent;
-            case 'sea': return seaComponent;
+            case 'sea':
+            case 'sea-tab': {
+                if (seaComponent) return seaComponent;
+                const tabCode = block.content?.code || block.content?.tab || lesson?.practiceTab;
+                if (tabCode) {
+                    return <SeaTabBlock content={{ tab: tabCode, title: block.title }} lesson={lesson} />;
+                }
+                return null;
+            }
             case 'links': return linksComponent;
             case 'attachments': return attachmentsComponent;
             case 'practice': return practiceComponent;
+            case 'checkpoints': {
+                const items = Array.isArray(block.content?.items) ? block.content.items : [];
+                return (
+                    <div className="p-8 space-y-4">
+                        <div className="space-y-3">
+                            {items.map((item, i) => (
+                                <div key={item.id || i} className="flex items-center gap-4 p-4 bg-slate-950/50 rounded-2xl border border-white/5">
+                                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center ${item.done ? 'bg-emerald-500 border-emerald-500 text-slate-950' : 'border-slate-700'}`}>
+                                        {item.done && <CheckCircle2 size={14} />}
+                                    </div>
+                                    <span className="text-sm font-bold text-slate-200">{item.text}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            }
+            case 'text': {
+                return (
+                    <div className="p-8 text-slate-300 whitespace-pre-wrap leading-relaxed text-base">
+                        {block.content?.text}
+                    </div>
+                );
+            }
             default: return null;
         }
     };
@@ -33,97 +131,113 @@ const WebLessonLayout = ({
     const getBlockIcon = (type) => {
         switch (type) {
             case 'video': return <Video size={14} />;
-            case 'tab': return <Music size={14} />;
+            case 'tab':
+            case 'gp-tab': return <Music size={14} />;
             case 'notes': return <FileText size={14} />;
             case 'blocks': return <Activity size={14} />;
-            case 'sea': return <Music size={14} />;
+            case 'sea':
+            case 'sea-tab': return <Music size={14} />;
             case 'practice': return <Activity size={14} />;
             default: return <FileJson size={14} />;
         }
     };
 
+    const visibleBlocks = (webBlocks || []).filter(hasBlockContent);
+
     return (
         <div className="bg-slate-950 scroll-smooth">
             <div className="max-w-5xl mx-auto px-4 py-20 space-y-32">
-                {webBlocks.map((block, idx) => (
-                    <section key={block.id || idx} className="animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-150">
-                        {/* Block Header */}
-                        <div className="mb-10 text-center md:text-left">
-                            <div className="flex items-center justify-center md:justify-start gap-4 mb-4">
-                                <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-2">
-                                    <span className="text-blue-500">{getBlockIcon(block.type)}</span>
-                                    <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">
-                                        Módulo {idx + 1}
-                                    </span>
-                                </div>
-                                <div className="hidden md:block h-[1px] flex-1 bg-gradient-to-r from-blue-500/20 to-transparent" />
-                            </div>
-                            <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight leading-tight">
-                                {block.title}
-                            </h2>
-                            {block.description && (
-                                <p className="text-slate-400 text-lg md:text-xl leading-relaxed max-w-3xl">
-                                    {block.description}
-                                </p>
-                            )}
+                {visibleBlocks.length === 0 ? (
+                    <div className="text-center py-24 px-4 bg-slate-900/30 border border-white/5 rounded-[3rem] max-w-xl mx-auto backdrop-blur-xl">
+                        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-slate-800/60 border border-white/5 flex items-center justify-center text-slate-500">
+                            <Music size={28} />
                         </div>
-
-                        {/* Block Content Container */}
-                        <div className="relative group">
-                            {/* Decorative Background Elements */}
-                            <div className="absolute -inset-4 bg-gradient-to-tr from-blue-500/5 via-transparent to-indigo-500/5 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-                            
-                            <div className={`relative bg-slate-900/40 rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl backdrop-blur-xl ring-1 ring-white/5 ${block.type === 'video' ? 'aspect-video' : block.type === 'tab' ? 'min-h-[600px] h-[600px]' : ''}`}>
-                                {renderBlockContent(block.type)}
-                            </div>
-                        </div>
-
-                        {/* Extra Resources (Links/Attachments) */}
-                        {(block.links?.length > 0 || block.attachments?.length > 0) && (
-                            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-5">
-                                {block.links?.map((link, i) => (
-                                    <a 
-                                        key={i} 
-                                        href={link.url} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="flex items-center justify-between p-6 bg-slate-900/20 border border-white/5 rounded-3xl hover:bg-slate-800/40 transition-all hover:scale-[1.02] active:scale-[0.98] group"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                                <LinkIcon size={18} />
-                                            </div>
-                                            <div>
-                                                <span className="block text-sm font-black text-white uppercase tracking-wider mb-0.5">{link.title}</span>
-                                                <span className="block text-[10px] text-slate-500 font-bold uppercase truncate max-w-[200px]">{link.url}</span>
-                                            </div>
-                                        </div>
-                                        <ChevronRight size={16} className="text-slate-700 group-hover:text-blue-500 transition-transform group-hover:translate-x-1" />
-                                    </a>
-                                ))}
-                                {block.attachments?.map((file, i) => (
-                                    <div 
-                                        key={i}
-                                        className="flex items-center justify-between p-6 bg-slate-900/20 border border-white/5 rounded-3xl"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-inner">
-                                                <FileText size={18} />
-                                            </div>
-                                            <div>
-                                                <span className="block text-sm font-black text-white uppercase tracking-wider mb-0.5">{file.title}</span>
-                                                <span className="block text-[10px] text-slate-500 font-bold uppercase">Archivo adjunto</span>
-                                            </div>
-                                        </div>
-                                        <button className="px-4 py-2 rounded-xl bg-emerald-500/10 text-[10px] font-black uppercase text-emerald-500 hover:bg-emerald-500 hover:text-slate-950 tracking-widest transition-all">
-                                            Descargar
-                                        </button>
+                        <h3 className="text-2xl font-black text-white mb-3 tracking-tight">Lección en preparación</h3>
+                        <p className="text-slate-400 text-sm leading-relaxed">
+                            Esta lección aún no tiene recursos ni partituras asignadas.
+                        </p>
+                    </div>
+                ) : (
+                    visibleBlocks.map((block, idx) => (
+                        <section key={block.id || idx} className="animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-150">
+                            {/* Block Header */}
+                            <div className="mb-10 text-center md:text-left">
+                                <div className="flex items-center justify-center md:justify-start gap-4 mb-4">
+                                    <div className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center gap-2">
+                                        <span className="text-blue-500">{getBlockIcon(block.type)}</span>
+                                        <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">
+                                            Módulo {idx + 1}
+                                        </span>
                                     </div>
-                                ))}
+                                    <div className="hidden md:block h-[1px] flex-1 bg-gradient-to-r from-blue-500/20 to-transparent" />
+                                </div>
+                                <h2 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight leading-tight">
+                                    {block.title}
+                                </h2>
+                                {block.description && (
+                                    <p className="text-slate-400 text-lg md:text-xl leading-relaxed max-w-3xl">
+                                        {block.description}
+                                    </p>
+                                )}
                             </div>
-                        )}
-                    </section>
-                ))}
+
+                            {/* Block Content Container */}
+                            <div className="relative group">
+                                {/* Decorative Background Elements */}
+                                <div className="absolute -inset-4 bg-gradient-to-tr from-blue-500/5 via-transparent to-indigo-500/5 rounded-[3rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                                
+                                <div className={`relative bg-slate-900/40 rounded-[2.5rem] border border-white/5 overflow-hidden shadow-2xl backdrop-blur-xl ring-1 ring-white/5 ${block.type === 'video' ? 'aspect-video' : (block.type === 'tab' || block.type === 'gp-tab') ? 'min-h-[600px] h-[600px]' : ''}`}>
+                                    {renderBlockContent(block)}
+                                </div>
+                            </div>
+
+                            {/* Extra Resources (Links/Attachments) */}
+                            {(block.links?.length > 0 || block.attachments?.length > 0) && (
+                                <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    {block.links?.map((link, i) => (
+                                        <a 
+                                            key={i} 
+                                            href={link.url} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-between p-6 bg-slate-900/20 border border-white/5 rounded-3xl hover:bg-slate-800/40 transition-all hover:scale-[1.02] active:scale-[0.98] group"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500 shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                                    <LinkIcon size={18} />
+                                                </div>
+                                                <div>
+                                                    <span className="block text-sm font-black text-white uppercase tracking-wider mb-0.5">{link.title}</span>
+                                                    <span className="block text-[10px] text-slate-500 font-bold uppercase truncate max-w-[200px]">{link.url}</span>
+                                                </div>
+                                            </div>
+                                            <ChevronRight size={16} className="text-slate-700 group-hover:text-blue-500 transition-transform group-hover:translate-x-1" />
+                                        </a>
+                                    ))}
+                                    {block.attachments?.map((file, i) => (
+                                        <div 
+                                            key={i} 
+                                            className="flex items-center justify-between p-6 bg-slate-900/20 border border-white/5 rounded-3xl"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-inner">
+                                                    <FileText size={18} />
+                                                </div>
+                                                <div>
+                                                    <span className="block text-sm font-black text-white uppercase tracking-wider mb-0.5">{file.title}</span>
+                                                    <span className="block text-[10px] text-slate-500 font-bold uppercase">Archivo adjunto</span>
+                                                </div>
+                                            </div>
+                                            <button className="px-4 py-2 rounded-xl bg-emerald-500/10 text-[10px] font-black uppercase text-emerald-500 hover:bg-emerald-500 hover:text-slate-950 tracking-widest transition-all">
+                                                Descargar
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+                    ))
+                )}
 
                 {/* Final Completion Block */}
                 <section className="py-32 border-t border-white/5 flex flex-col items-center text-center animate-in fade-in zoom-in duration-1000 delay-300">

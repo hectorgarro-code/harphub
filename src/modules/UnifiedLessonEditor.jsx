@@ -504,6 +504,59 @@ const UnifiedLessonEditor = ({
         }
     };
 
+    const hasBlockContent = (block) => {
+        if (!block) return false;
+        const hasBlockLinks = Array.isArray(block.links) && block.links.length > 0;
+        const hasBlockAttachments = Array.isArray(block.attachments) && block.attachments.length > 0;
+        if (hasBlockLinks || hasBlockAttachments) return true;
+
+        switch (block.type) {
+            case 'video': {
+                const url = (block.content?.url || lesson.youtubeId || '').trim();
+                return Boolean(url);
+            }
+            case 'gp-tab':
+            case 'tab': {
+                const url = (block.content?.url || lesson.gpFile || '').trim();
+                return Boolean(url || selectedGpFile);
+            }
+            case 'sea-tab':
+            case 'sea': {
+                const code = (block.content?.code || block.content?.tab || lesson.practiceTab || '').trim();
+                return Boolean(code);
+            }
+            case 'notes': {
+                const text = (block.content?.text || lesson.personal_notes || '').trim();
+                return Boolean(text);
+            }
+            case 'attachments': {
+                const files = Array.isArray(block.content?.files) ? block.content.files.length : 0;
+                return files > 0 || (selectedAttachments && selectedAttachments.length > 0);
+            }
+            case 'links': {
+                const items = Array.isArray(block.content?.items) ? block.content.items.length : 0;
+                return items > 0;
+            }
+            case 'checkpoints': {
+                const items = Array.isArray(block.content?.items) ? block.content.items : [];
+                return items.some(it => it && it.text && it.text.trim());
+            }
+            case 'practice': {
+                const tools = Array.isArray(block.content?.tools) ? block.content.tools.length : 0;
+                const exercises = Array.isArray(block.content?.exercises) ? block.content.exercises.length : 0;
+                const text = (block.content?.text || '').trim();
+                return tools > 0 || exercises > 0 || Boolean(text);
+            }
+            case 'text':
+            default: {
+                const text = (block.content?.text || '').trim();
+                return Boolean(text);
+            }
+        }
+    };
+
+    const displayedBlocks = isPreview ? lesson.blocks.filter(hasBlockContent) : lesson.blocks;
+
     return (
         <div className="fixed inset-0 z-[150] flex h-screen w-full bg-slate-950 text-slate-200 font-sans overflow-hidden">
             {/* --- SIDEBAR IZQUIERDO --- */}
@@ -514,7 +567,7 @@ const UnifiedLessonEditor = ({
                     </h2>
 
                     <div className="space-y-2 overflow-y-auto flex-1 custom-scrollbar pr-2">
-                        {lesson.blocks.map((block, idx) => (
+                        {displayedBlocks.map((block, idx) => (
                             <div
                                 key={block.id}
                                 draggable={!isPreview}
@@ -610,8 +663,12 @@ const UnifiedLessonEditor = ({
                             </div>
                             <button onClick={() => setShowPresets(false)} className="mt-10 mx-auto block text-[10px] font-black uppercase text-slate-500 hover:text-white tracking-widest underline underline-offset-4">Empezar desde blanco</button>
                         </div>
+                    ) : displayedBlocks.length === 0 ? (
+                        <div className="py-24 text-center text-slate-500 font-bold uppercase tracking-widest text-xs border border-dashed border-white/5 rounded-3xl">
+                            {isPreview ? 'No hay bloques con contenido asignado para mostrar en la vista previa' : 'No hay bloques configurados'}
+                        </div>
                     ) : (
-                        lesson.blocks.map((block) => (
+                        displayedBlocks.map((block) => (
                             <div key={block.id} id={`block-${block.id}`}>
                                 {renderBlockEditor(block)}
                             </div>

@@ -4,6 +4,7 @@ import { Play, Pause, RotateCcw, SkipBack, SkipForward, Volume2, VolumeX, Gauge,
 import { useWorkspace } from '../../../context/WorkspaceContext';
 
 const AlphaTabPanel = ({ gpFile }) => {
+    if (!gpFile) return null;
     const { settings, setSettings } = useWorkspace();
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);

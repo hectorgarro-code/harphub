@@ -18,6 +18,7 @@ import WorkspaceNotesPanel from '../components/lessons/workspace/WorkspaceNotesP
 import WorkspaceBlocksPanel from '../components/lessons/workspace/WorkspaceBlocksPanel';
 import PracticeTab from '../components/lessons/workspace/PracticeTab';
 import ReviewsTab from '../components/lessons/workspace/ReviewsTab';
+import SeaTabBlock from '../components/lessons/blocks/SeaTabBlock';
 import { PracticeTrackerProvider, usePracticeTracker } from '../hooks/usePracticeTracker.jsx';
 
 export default function LessonPage({ 
@@ -225,11 +226,12 @@ export default function LessonPage({
                     <main className="flex-1 overflow-y-auto">
                         {activeTab === 'lesson' && (
                             <WebLessonLayout 
+                                lesson={lesson}
                                 videoComponent={<WorkspaceVideoPanel youtubeId={lesson.youtubeId} title={lesson.title} />}
                                 tabComponent={<AlphaTabPanel gpFile={lesson.gpFile} />}
-                                notesComponent={<WorkspaceNotesPanel />}
+                                notesComponent={<WorkspaceNotesPanel lessonNotes={lesson.personal_notes} />}
                                 blocksComponent={<WorkspaceBlocksPanel blocks={blocks} />}
-                                seaComponent={<div className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">SEA Editor (En desarrollo)</div>}
+                                seaComponent={lesson.practiceTab ? <SeaTabBlock content={{ tab: lesson.practiceTab, title: lesson.title }} lesson={lesson} /> : null}
                                 linksComponent={<div className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Recursos vinculados</div>}
                                 attachmentsComponent={<div className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Archivos de la lección</div>}
                                 practiceComponent={<div className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Herramientas de estudio</div>}

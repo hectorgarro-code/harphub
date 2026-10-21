@@ -3,6 +3,7 @@ import UniversalVideoPlayer from '../../common/UniversalVideoPlayer';
 import { getMediaInfo } from '../../../utils/mediaEmbed';
 
 const WorkspaceVideoPanel = ({ youtubeId, title }) => {
+    if (!youtubeId || !youtubeId.trim()) return null;
     const media = getMediaInfo(youtubeId);
 
     return (
