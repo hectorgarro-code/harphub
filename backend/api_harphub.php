@@ -476,6 +476,10 @@ try {
         UNIQUE KEY unique_progress (user_id, entity_type, entity_id)
     )");
 
+    try {
+        $pdo->exec("ALTER TABLE user_progress ADD COLUMN progress_level INT DEFAULT 0");
+    } catch (Exception $e) {}
+
     $pdo->exec("CREATE TABLE IF NOT EXISTS user_saved_items (
         id INT AUTO_INCREMENT PRIMARY KEY,
         user_id INT NOT NULL,
@@ -956,13 +960,19 @@ try {
             $stmtR->execute([$lesson_id]);
             $relations = $stmtR->fetchAll(PDO::FETCH_ASSOC);
 
-            // Check progress
+            // Check progress & mastery level
             $user_id = (int)($_GET['user_id'] ?? 0);
             $is_completed = false;
+            $progress_level = 0;
             if ($user_id) {
-                $stmtP = $pdo->prepare("SELECT COUNT(*) FROM user_progress WHERE user_id = ? AND entity_type = 'lesson' AND entity_id = ?");
+                $stmtP = $pdo->prepare("SELECT status, progress_level FROM user_progress WHERE user_id = ? AND entity_type = 'lesson' AND entity_id = ?");
                 $stmtP->execute([$user_id, $lesson_id]);
-                $is_completed = $stmtP->fetchColumn() > 0;
+                $prog = $stmtP->fetch(PDO::FETCH_ASSOC);
+                if ($prog) {
+                    $progress_level = isset($prog['progress_level']) ? intval($prog['progress_level']) : 0;
+                    $is_completed = ($prog['status'] === 'completed' || $progress_level >= 100);
+                    if ($is_completed && $progress_level < 100) $progress_level = 100;
+                }
             }
 
             // Workspace Data if user_id is provided
@@ -1006,6 +1016,7 @@ try {
                 'knowledge' => $knowledge, 
                 'relations' => $relations,
                 'is_completed' => $is_completed,
+                'progress_level' => $progress_level,
                 'is_saved' => $is_saved,
                 'workspace' => $workspace
             ]);
@@ -1379,13 +1390,17 @@ try {
         if ($action === 'lessons' || $action === 'get_lessons') {
             $raw_user_id = $_GET['user_id'] ?? '';
             if (!empty($raw_user_id)) {
-                $stmt = $pdo->prepare("SELECT DISTINCT l.* FROM lessons l 
+                $stmt = $pdo->prepare("SELECT DISTINCT l.*,
+                                       COALESCE(up.progress_level, CASE WHEN up.status = 'completed' THEN 100 ELSE 0 END, 0) as progress_level,
+                                       CASE WHEN up.status = 'completed' OR COALESCE(up.progress_level, 0) >= 100 THEN 1 ELSE 0 END as completed
+                                       FROM lessons l 
                                        LEFT JOIN user_saved_items s ON (s.entity_id = l.id AND s.entity_type = 'lesson' AND (s.user_id = ? OR s.user_id = ?))
+                                       LEFT JOIN user_progress up ON (up.lesson_id = l.id AND (up.user_id = ? OR up.user_id = ?))
                                        WHERE l.user_id = ? OR l.user_id = ? OR s.id IS NOT NULL 
                                        ORDER BY l.createdAt DESC");
-                $stmt->execute([$raw_user_id, (int)$raw_user_id, $raw_user_id, (int)$raw_user_id]);
+                $stmt->execute([$raw_user_id, (int)$raw_user_id, $raw_user_id, (int)$raw_user_id, $raw_user_id, (int)$raw_user_id]);
             } else {
-                $stmt = $pdo->prepare("SELECT * FROM lessons WHERE visibility = 'public' OR visibility = 'remixable' ORDER BY createdAt DESC LIMIT 100");
+                $stmt = $pdo->prepare("SELECT *, 0 as progress_level, 0 as completed FROM lessons WHERE visibility = 'public' OR visibility = 'remixable' ORDER BY createdAt DESC LIMIT 100");
                 $stmt->execute();
             }
             echo json_encode($stmt->fetchAll(PDO::FETCH_ASSOC));
@@ -1666,24 +1681,65 @@ try {
             }
 
             // Check if already completed
-            $stmt = $pdo->prepare("SELECT id FROM user_progress WHERE user_id = ? AND entity_type = ? AND entity_id = ?");
+            $stmt = $pdo->prepare("SELECT id, status, progress_level FROM user_progress WHERE user_id = ? AND entity_type = ? AND entity_id = ?");
             $stmt->execute([$user_id, $entity_type, $entity_id]);
             $exists = $stmt->fetch();
 
-            if ($exists) {
+            if ($exists && ($exists['status'] === 'completed' || ($exists['progress_level'] ?? 0) >= 100)) {
                 $stmt = $pdo->prepare("DELETE FROM user_progress WHERE id = ?");
                 $stmt->execute([$exists['id']]);
                 $status = 'uncompleted';
+                $progress_level = 0;
             } else {
-                $stmt = $pdo->prepare("INSERT INTO user_progress (user_id, entity_type, entity_id, status) VALUES (?, ?, ?, 'completed')");
+                $stmt = $pdo->prepare("INSERT INTO user_progress (user_id, entity_type, entity_id, status, progress_level) 
+                                       VALUES (?, ?, ?, 'completed', 100)
+                                       ON DUPLICATE KEY UPDATE status = 'completed', progress_level = 100, completed_at = CURRENT_TIMESTAMP");
                 $stmt->execute([$user_id, $entity_type, $entity_id]);
                 $status = 'completed';
-                
-                // Log activity
+                $progress_level = 100;
                 log_activity($pdo, $user_id, 'completed_' . $entity_type, $entity_id);
             }
 
-            echo json_encode(['success' => true, 'status' => $status]);
+            echo json_encode([
+                'success' => true, 
+                'status' => $status, 
+                'progress_level' => $progress_level,
+                'is_completed' => ($status === 'completed')
+            ]);
+            exit;
+        }
+
+        if ($action === 'set_progress_level') {
+            $user_id = get_int($data['user_id'] ?? 0);
+            $entity_id = get_int($data['entity_id'] ?? 0);
+            $entity_type = $data['entity_type'] ?? 'lesson';
+            $level = get_int($data['level'] ?? 0);
+
+            if (!$user_id || !$entity_id) {
+                http_response_code(400); echo json_encode(['error' => 'Missing data']); exit;
+            }
+
+            if ($level <= 0) {
+                $stmt = $pdo->prepare("DELETE FROM user_progress WHERE user_id = ? AND entity_type = ? AND entity_id = ?");
+                $stmt->execute([$user_id, $entity_type, $entity_id]);
+                $status = 'uncompleted';
+            } else {
+                $status = ($level >= 100) ? 'completed' : 'started';
+                $stmt = $pdo->prepare("INSERT INTO user_progress (user_id, entity_type, entity_id, status, progress_level) 
+                                       VALUES (?, ?, ?, ?, ?) 
+                                       ON DUPLICATE KEY UPDATE status = VALUES(status), progress_level = VALUES(progress_level), completed_at = CURRENT_TIMESTAMP");
+                $stmt->execute([$user_id, $entity_type, $entity_id, $status, $level]);
+                if ($status === 'completed') {
+                    log_activity($pdo, $user_id, 'completed_' . $entity_type, $entity_id);
+                }
+            }
+
+            echo json_encode([
+                'success' => true, 
+                'status' => $status, 
+                'progress_level' => $level,
+                'is_completed' => ($level >= 100)
+            ]);
             exit;
         }
 

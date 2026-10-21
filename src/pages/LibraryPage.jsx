@@ -88,7 +88,11 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
             const matchesSearch = l.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                 (l.artist && l.artist.toLowerCase().includes(searchTerm.toLowerCase()));
             const matchesInstrument = instrumentFilter === 'all' || l.instrument?.toLowerCase() === instrumentFilter.toLowerCase();
-            const matchesCompletion = completionFilter === 'all' ? true : (completionFilter === 'completed' ? l.completed : !l.completed);
+            const lvl = Number(l.progress_level !== undefined ? l.progress_level : (l.completed ? 100 : 0));
+            let matchesCompletion = true;
+            if (completionFilter === 'completed') matchesCompletion = lvl >= 100;
+            else if (completionFilter === 'in_progress') matchesCompletion = lvl > 0 && lvl < 100;
+            else if (completionFilter === 'pending') matchesCompletion = lvl === 0;
             const matchesKey = keyFilter === 'ALL' || (l.harmonica_key && l.harmonica_key.toUpperCase() === keyFilter.toUpperCase());
             
             const mins = parseDuration(l.duration);
@@ -321,13 +325,15 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
                         <button 
                             onClick={() => {
                                 setCompletionFilter(prev => {
-                                    if (prev === 'all') return 'pending';
-                                    if (prev === 'pending') return 'completed';
+                                    if (prev === 'all') return 'in_progress';
+                                    if (prev === 'in_progress') return 'completed';
+                                    if (prev === 'completed') return 'pending';
                                     return 'all';
                                 });
                             }}
                             className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${
                                 completionFilter === 'completed' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' : 
+                                completionFilter === 'in_progress' ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400' : 
                                 completionFilter === 'pending' ? 'bg-amber-500/20 border-amber-500/40 text-amber-500' : 
                                 'bg-slate-950/50 border-white/5 text-slate-500 hover:text-slate-300'
                             }`}
@@ -335,7 +341,8 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
                             <Check size={14} className={completionFilter === 'all' ? 'opacity-50' : ''} />
                             <span className="text-[10px] font-black uppercase tracking-widest">
                                 {completionFilter === 'all' ? 'TODAS LAS LECCIONES' : 
-                                 completionFilter === 'pending' ? 'SOLO PENDIENTES' : 'SOLO FINALIZADAS'}
+                                 completionFilter === 'in_progress' ? 'EN PRÁCTICA (25-75%)' :
+                                 completionFilter === 'completed' ? 'SOLO DOMINADAS (100%)' : 'SOLO SIN INICIAR'}
                             </span>
                         </button>
                     </div>
@@ -501,11 +508,36 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
                                                                 </button>
                                                             </div>
 
-                                                            {/* Badges on Thumbnail */}
-                                                            <div className="absolute top-3 right-3 flex flex-col gap-2">
-                                                                {lesson.completed && (
-                                                                    <div className="w-7 h-7 bg-emerald-500 text-white rounded-lg flex items-center justify-center shadow-lg shadow-emerald-500/40 border border-emerald-400/50">
-                                                                        <Check size={14} strokeWidth={4} />
+                                                            {/* Mastery Semáforo & Difficulty Badges on Thumbnail */}
+                                                            <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5 z-10">
+                                                                {Number(lesson.progress_level || (lesson.completed ? 100 : 0)) > 0 && (
+                                                                    <div 
+                                                                        className={`px-2 py-0.5 rounded-lg flex items-center gap-1.5 shadow-xl backdrop-blur-md border text-[10px] font-black uppercase tracking-wider ${
+                                                                            Number(lesson.progress_level || (lesson.completed ? 100 : 0)) >= 100
+                                                                                ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-emerald-500/30'
+                                                                                : Number(lesson.progress_level) >= 75
+                                                                                    ? 'bg-cyan-500 text-slate-950 border-cyan-300 shadow-cyan-500/30'
+                                                                                    : Number(lesson.progress_level) >= 50
+                                                                                        ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-amber-500/30'
+                                                                                        : 'bg-orange-500 text-slate-950 border-orange-300 shadow-orange-500/30'
+                                                                        }`}
+                                                                        title={`Dominio: ${lesson.progress_level || (lesson.completed ? 100 : 0)}%`}
+                                                                    >
+                                                                        {Number(lesson.progress_level || (lesson.completed ? 100 : 0)) >= 100 ? (
+                                                                            <>
+                                                                                <Check size={12} strokeWidth={4} />
+                                                                                <span>100%</span>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <div className="flex items-center gap-0.5">
+                                                                                    <span className={`w-1 h-2 rounded-sm ${Number(lesson.progress_level) >= 25 ? 'bg-slate-950' : 'bg-slate-950/25'}`} />
+                                                                                    <span className={`w-1 h-2 rounded-sm ${Number(lesson.progress_level) >= 50 ? 'bg-slate-950' : 'bg-slate-950/25'}`} />
+                                                                                    <span className={`w-1 h-2 rounded-sm ${Number(lesson.progress_level) >= 75 ? 'bg-slate-950' : 'bg-slate-950/25'}`} />
+                                                                                </div>
+                                                                                <span>{lesson.progress_level}%</span>
+                                                                            </>
+                                                                        )}
                                                                     </div>
                                                                 )}
                                                                 <div className="px-2 py-1 bg-slate-950/80 backdrop-blur-md rounded-lg border border-white/10 flex items-center gap-1 shadow-xl">
@@ -527,6 +559,24 @@ export default function LibraryPage({ setIsAdding, setSelectedItem }) {
                                                             <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-md text-[10px] font-black text-white border border-white/10">
                                                                 {lesson.duration || '5:00'}
                                                             </div>
+
+                                                            {/* Bottom energy progress strip */}
+                                                            {Number(lesson.progress_level || (lesson.completed ? 100 : 0)) > 0 && (
+                                                                <div className="absolute bottom-0 inset-x-0 h-1 bg-black/60 overflow-hidden flex">
+                                                                    <div 
+                                                                        className={`h-full transition-all duration-300 ${
+                                                                            Number(lesson.progress_level || (lesson.completed ? 100 : 0)) >= 100
+                                                                                ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'
+                                                                                : Number(lesson.progress_level) >= 75
+                                                                                    ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]'
+                                                                                    : Number(lesson.progress_level) >= 50
+                                                                                        ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]'
+                                                                                        : 'bg-orange-400 shadow-[0_0_8px_rgba(251,146,60,0.8)]'
+                                                                        }`}
+                                                                        style={{ width: `${Math.min(100, lesson.progress_level || (lesson.completed ? 100 : 0))}%` }}
+                                                                    />
+                                                                </div>
+                                                            )}
                                                         </div>
 
                                                         <div className="p-5">

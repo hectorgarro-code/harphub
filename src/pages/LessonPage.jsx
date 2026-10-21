@@ -40,6 +40,7 @@ export default function LessonPage({
     const [workspaceData, setWorkspaceData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isCompleted, setIsCompleted] = useState(false);
+    const [progressLevel, setProgressLevel] = useState(0);
     const [isSaved, setIsSaved] = useState(false);
     const [activeTab, setActiveTab] = useState('lesson'); // 'lesson' | 'practice' | 'reviews'
 
@@ -61,6 +62,7 @@ export default function LessonPage({
                 setLesson(res.lesson);
                 setBlocks(res.blocks);
                 setIsCompleted(res.is_completed || false);
+                setProgressLevel(res.progress_level !== undefined ? res.progress_level : (res.is_completed ? 100 : 0));
                 setIsSaved(res.is_saved || false);
                 setWorkspaceData(res.workspace);
             }
@@ -110,10 +112,38 @@ export default function LessonPage({
         }
     };
 
+    const handleProgressChange = async (newLevel) => {
+        if (!user) return alert("Inicia sesión para guardar tu avance");
+        const prevLevel = progressLevel;
+        const prevCompleted = isCompleted;
+        const willBeCompleted = newLevel >= 100;
+
+        setProgressLevel(newLevel);
+        setIsCompleted(willBeCompleted);
+
+        try {
+            const res = await api.request('set_progress_level', 'POST', {
+                user_id: user.id,
+                entity_id: id,
+                entity_type: 'lesson',
+                level: newLevel
+            });
+            if (res && res.success) {
+                window.dispatchEvent(new CustomEvent('lesson-updated', { detail: { id, progress_level: newLevel, completed: willBeCompleted } }));
+            }
+        } catch (e) {
+            console.error("Error setting progress level:", e);
+            setProgressLevel(prevLevel);
+            setIsCompleted(prevCompleted);
+        }
+    };
+
     const toggleCompleted = async () => {
-        if (!user) return;
+        if (!user) return alert("Inicia sesión para registrar tu progreso");
         const newStatus = !isCompleted;
+        const newLevel = newStatus ? 100 : 0;
         setIsCompleted(newStatus);
+        setProgressLevel(newLevel);
         
         try {
             await api.request('toggle_completion', 'POST', {
@@ -121,10 +151,11 @@ export default function LessonPage({
                 entity_id: id,
                 entity_type: 'lesson'
             });
-            window.dispatchEvent(new CustomEvent('lesson-updated', { detail: { id } }));
+            window.dispatchEvent(new CustomEvent('lesson-updated', { detail: { id, progress_level: newLevel, completed: newStatus } }));
         } catch (e) {
             console.error("Error toggling completion:", e);
-            setIsCompleted(!newStatus); // Rollback
+            setIsCompleted(!newStatus);
+            setProgressLevel(isCompleted ? 100 : 0);
         }
     };
 
@@ -237,6 +268,8 @@ export default function LessonPage({
                                 attachmentsComponent={<div className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Archivos de la lección</div>}
                                 practiceComponent={<div className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Herramientas de estudio</div>}
                                 isCompleted={isCompleted}
+                                progressLevel={progressLevel}
+                                onProgressChange={handleProgressChange}
                                 toggleCompleted={toggleCompleted}
                             />
                         )}

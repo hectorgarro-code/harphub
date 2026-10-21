@@ -1,7 +1,61 @@
 import React from 'react';
 import { useWorkspace } from '../../../context/WorkspaceContext';
-import { Check, Link as LinkIcon, FileText, ChevronRight, Music, Video, Activity, FileJson, CheckCircle2 } from 'lucide-react';
+import { 
+    Check, Link as LinkIcon, FileText, ChevronRight, Music, Video, 
+    Activity, FileJson, CheckCircle2, Zap, Flame, Trophy, RotateCcw, Sparkles 
+} from 'lucide-react';
 import SeaTabBlock from '../blocks/SeaTabBlock';
+
+const STAGES = [
+    {
+        level: 25,
+        name: 'Iniciada',
+        stepLabel: 'Paso 1',
+        desc: 'Primer contacto con el material. Notas base y estructura.',
+        activeBg: 'bg-orange-500/15 hover:bg-orange-500/25',
+        activeBorder: 'border-orange-500/70',
+        activeText: 'text-orange-400',
+        glow: 'shadow-[0_0_25px_rgba(249,115,22,0.35)]',
+        colorBar: 'from-orange-500 to-amber-500',
+        icon: Flame
+    },
+    {
+        level: 50,
+        name: 'En Práctica',
+        stepLabel: 'Paso 2',
+        desc: 'Memorizando frases, digitación y tempo moderado.',
+        activeBg: 'bg-amber-500/15 hover:bg-amber-500/25',
+        activeBorder: 'border-amber-400/70',
+        activeText: 'text-amber-400',
+        glow: 'shadow-[0_0_25px_rgba(245,158,11,0.35)]',
+        colorBar: 'from-amber-500 to-yellow-400',
+        icon: Zap
+    },
+    {
+        level: 75,
+        name: 'Avanzada',
+        stepLabel: 'Paso 3',
+        desc: 'Tocando a tempo real con fluidez, control y afinación.',
+        activeBg: 'bg-cyan-500/15 hover:bg-cyan-500/25',
+        activeBorder: 'border-cyan-400/70',
+        activeText: 'text-cyan-400',
+        glow: 'shadow-[0_0_25px_rgba(6,182,212,0.35)]',
+        colorBar: 'from-cyan-500 to-blue-500',
+        icon: Activity
+    },
+    {
+        level: 100,
+        name: 'Dominada',
+        stepLabel: 'Paso 4',
+        desc: '¡Lección dominada con maestría e incorporada al repertorio!',
+        activeBg: 'bg-emerald-500/20 hover:bg-emerald-500/30',
+        activeBorder: 'border-emerald-400/80',
+        activeText: 'text-emerald-400',
+        glow: 'shadow-[0_0_35px_rgba(16,185,129,0.45)]',
+        colorBar: 'from-emerald-500 to-teal-400',
+        icon: Trophy
+    }
+];
 
 const WebLessonLayout = ({ 
     lesson,
@@ -13,7 +67,9 @@ const WebLessonLayout = ({
     linksComponent, 
     attachmentsComponent, 
     practiceComponent,
-    isCompleted,
+    isCompleted = false,
+    progressLevel = 0,
+    onProgressChange,
     toggleCompleted
 }) => {
     const { webBlocks, notes } = useWorkspace();
@@ -214,32 +270,157 @@ const WebLessonLayout = ({
                     ))
                 )}
 
-                {/* Final Completion Block */}
-                <section className="py-32 border-t border-white/5 flex flex-col items-center text-center animate-in fade-in zoom-in duration-1000 delay-300">
-                    <div className={`w-24 h-24 rounded-[2rem] flex items-center justify-center mb-10 transition-all duration-700 ${isCompleted ? 'bg-emerald-500 text-slate-950 rotate-[360deg] shadow-[0_0_50px_rgba(16,185,129,0.3)]' : 'bg-blue-600/10 text-blue-500 border border-blue-500/20'}`}>
-                        <Check size={isCompleted ? 48 : 40} strokeWidth={4} />
-                    </div>
-                    <h2 className="text-5xl font-black text-white mb-6 tracking-tight leading-tight">
-                        {isCompleted ? '¡Misión Cumplida!' : '¿Completaste el contenido?'}
-                    </h2>
-                    <p className="text-slate-400 text-xl mb-14 max-w-2xl leading-relaxed">
-                        {isCompleted 
-                            ? 'Has finalizado esta lección con éxito. ¡Sigue así para convertirte en un maestro de la música!'
-                            : 'Marca la lección como finalizada para registrar tu progreso y mantener tu racha de estudio activa.'}
-                    </p>
-                    <button 
-                        onClick={toggleCompleted}
-                        className={`px-16 py-6 rounded-[2rem] text-xl font-black uppercase tracking-[0.2em] transition-all shadow-2xl hover:-translate-y-1 active:scale-95 ${isCompleted ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/20' : 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-500/30'}`}
-                    >
-                        {isCompleted ? 'Volver a Estudiar' : 'Marcar como Finalizada'}
-                    </button>
-                    
-                    {isCompleted && (
-                        <div className="mt-8 flex items-center gap-3 animate-bounce">
-                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em]">¡Excelente trabajo!</span>
-                        </div>
-                    )}
-                </section>
+                {/* Energy Bar / Mastery Semáforo Block */}
+                {(() => {
+                    const currentLevel = typeof progressLevel === 'number' ? progressLevel : (isCompleted ? 100 : 0);
+                    const activeStage = STAGES.slice().reverse().find(s => currentLevel >= s.level);
+                    const isMastered = currentLevel >= 100;
+
+                    const handleSelectLevel = (level) => {
+                        if (onProgressChange) {
+                            if (currentLevel === level) {
+                                const prev = level === 25 ? 0 : level === 50 ? 25 : level === 75 ? 50 : 75;
+                                onProgressChange(prev);
+                            } else {
+                                onProgressChange(level);
+                            }
+                        } else if (toggleCompleted && level === 100) {
+                            toggleCompleted();
+                        }
+                    };
+
+                    return (
+                        <section className="py-24 border-t border-white/5 flex flex-col items-center text-center animate-in fade-in zoom-in duration-700">
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-black uppercase tracking-widest mb-8">
+                                <Zap size={14} className="text-amber-400 animate-pulse" />
+                                <span>Semáforo de Dominio y Avance</span>
+                            </div>
+
+                            {/* Dynamic Icon Badge */}
+                            <div className={`w-24 h-24 rounded-[2.2rem] flex items-center justify-center mb-8 transition-all duration-700 ${
+                                isMastered 
+                                    ? 'bg-emerald-500 text-slate-950 rotate-[360deg] shadow-[0_0_55px_rgba(16,185,129,0.45)]' 
+                                    : activeStage 
+                                        ? `${activeStage.activeBg} ${activeStage.activeText} border ${activeStage.activeBorder} ${activeStage.glow}`
+                                        : 'bg-slate-900/80 text-slate-500 border border-white/10'
+                            }`}>
+                                {isMastered ? (
+                                    <Trophy size={46} strokeWidth={2.5} />
+                                ) : activeStage ? (
+                                    <activeStage.icon size={42} strokeWidth={2.5} />
+                                ) : (
+                                    <Zap size={38} strokeWidth={2} />
+                                )}
+                            </div>
+
+                            {/* Headline */}
+                            <h2 className="text-4xl md:text-5xl font-black text-white mb-4 tracking-tight leading-tight">
+                                {isMastered 
+                                    ? '¡Lección Dominada al 100%!' 
+                                    : activeStage 
+                                        ? `${activeStage.name} (${currentLevel}%)` 
+                                        : '¿Cuál es tu grado de avance?'}
+                            </h2>
+
+                            <p className="text-slate-400 text-lg md:text-xl mb-10 max-w-2xl leading-relaxed">
+                                {isMastered 
+                                    ? '¡Felicitaciones! Has conquistado esta lección por completo según tu criterio y ya forma parte de tu repertorio activo.'
+                                    : activeStage 
+                                        ? activeStage.desc 
+                                        : 'Tú marcas tu propio criterio. Selecciona un bloque de la barra de energía conforme avances hasta marcarla dominada.'}
+                            </p>
+
+                            {/* 4-Stage Energy Bar / Semáforo Grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 w-full max-w-3xl mb-10 px-4">
+                                {STAGES.map((stage) => {
+                                    const isFilled = currentLevel >= stage.level;
+                                    const isCurrent = activeStage?.level === stage.level;
+                                    const IconComp = stage.icon;
+
+                                    return (
+                                        <button
+                                            key={stage.level}
+                                            onClick={() => handleSelectLevel(stage.level)}
+                                            className={`relative p-5 rounded-3xl border transition-all duration-300 flex flex-col items-center text-center cursor-pointer group active:scale-95 ${
+                                                isFilled 
+                                                    ? `${stage.activeBg} ${stage.activeBorder} ${stage.glow} scale-[1.02]` 
+                                                    : 'bg-slate-900/40 border-white/5 hover:border-white/20 hover:bg-slate-900/80 hover:scale-[1.01]'
+                                            }`}
+                                        >
+                                            {/* Top label & Icon */}
+                                            <div className="flex items-center justify-between w-full mb-3">
+                                                <span className={`text-[10px] font-black uppercase tracking-widest ${isFilled ? stage.activeText : 'text-slate-500'}`}>
+                                                    {stage.stepLabel}
+                                                </span>
+                                                <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all ${
+                                                    isFilled ? `bg-white/10 ${stage.activeText}` : 'bg-slate-800 text-slate-600'
+                                                }`}>
+                                                    <IconComp size={14} />
+                                                </div>
+                                            </div>
+
+                                            {/* Energy segment bar */}
+                                            <div className="w-full h-2 rounded-full bg-slate-950/80 border border-white/5 overflow-hidden mb-3">
+                                                <div className={`h-full rounded-full transition-all duration-500 ${
+                                                    isFilled ? `bg-gradient-to-r ${stage.colorBar} w-full` : 'w-0'
+                                                }`} />
+                                            </div>
+
+                                            {/* Level % */}
+                                            <div className="text-2xl font-black text-white tracking-tight mb-1">
+                                                {stage.level}%
+                                            </div>
+                                            <div className={`text-[11px] font-bold uppercase tracking-wider ${isFilled ? stage.activeText : 'text-slate-400'}`}>
+                                                {stage.name}
+                                            </div>
+
+                                            {/* Active badge */}
+                                            {isCurrent && (
+                                                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-white text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-lg">
+                                                    Actual
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Main Action Buttons */}
+                            <div className="flex flex-col items-center gap-4">
+                                <button 
+                                    onClick={() => handleSelectLevel(isMastered ? 0 : 100)}
+                                    className={`px-12 md:px-16 py-5 rounded-[2rem] text-lg font-black uppercase tracking-[0.2em] transition-all shadow-2xl hover:-translate-y-1 active:scale-95 flex items-center gap-3 ${
+                                        isMastered 
+                                            ? 'bg-emerald-500 text-slate-950 shadow-emerald-500/25 hover:bg-emerald-400' 
+                                            : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 shadow-blue-500/30'
+                                    }`}
+                                >
+                                    {isMastered ? (
+                                        <>
+                                            <CheckCircle2 size={22} />
+                                            <span>¡Dominada! Volver a Estudiar</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Trophy size={20} />
+                                            <span>Marcar como Dominada (100%)</span>
+                                        </>
+                                    )}
+                                </button>
+
+                                {currentLevel > 0 && (
+                                    <button
+                                        onClick={() => onProgressChange && onProgressChange(0)}
+                                        className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-2 py-2 px-4 rounded-xl hover:bg-slate-900/60 border border-transparent hover:border-white/5"
+                                    >
+                                        <RotateCcw size={13} />
+                                        <span>Reiniciar avance (0%)</span>
+                                    </button>
+                                )}
+                            </div>
+                        </section>
+                    );
+                })()}
             </div>
         </div>
     );
