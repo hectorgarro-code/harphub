@@ -21,62 +21,28 @@ const WebLessonLayout = ({
     const hasBlockContent = (block) => {
         if (!block) return false;
 
-        // Si el bloque tiene links o attachments adjuntos, tiene contenido
-        const hasDirectLinks = Array.isArray(block.links) && block.links.length > 0;
-        const hasDirectAttachments = Array.isArray(block.attachments) && block.attachments.length > 0;
-        if (hasDirectLinks || hasDirectAttachments) return true;
-
         const type = block.type;
         switch (type) {
-            case 'video': {
-                const yt = (lesson?.youtubeId || block.content?.url || '').trim();
-                return Boolean(yt);
-            }
             case 'tab':
             case 'gp-tab': {
+                // AlphaTab / GP: solo si tiene partitura asignada
                 const gp = (lesson?.gpFile || block.content?.url || block.content?.file || '').trim();
                 return Boolean(gp);
             }
-            case 'sea':
-            case 'sea-tab': {
-                const sea = (lesson?.practiceTab || block.content?.code || block.content?.tab || '').trim();
-                return Boolean(sea);
-            }
-            case 'notes': {
-                const noteText = (lesson?.personal_notes || block.content?.text || '').trim();
-                const userNotesCount = Array.isArray(notes) ? notes.length : 0;
-                return Boolean(noteText || userNotesCount > 0);
-            }
-            case 'attachments': {
-                const blockFiles = Array.isArray(block.content?.files) ? block.content.files.length : 0;
-                let lessonFilesCount = 0;
-                try {
-                    if (lesson?.attachments) {
-                        const parsed = typeof lesson.attachments === 'string' ? JSON.parse(lesson.attachments) : lesson.attachments;
-                        if (Array.isArray(parsed)) lessonFilesCount = parsed.length;
-                    }
-                } catch (e) {}
-                return blockFiles > 0 || lessonFilesCount > 0;
-            }
-            case 'links': {
-                const items = Array.isArray(block.content?.items) ? block.content.items.length : 0;
-                return items > 0;
-            }
-            case 'checkpoints': {
-                const items = Array.isArray(block.content?.items) ? block.content.items : [];
-                return items.some(it => it && it.text && it.text.trim());
-            }
-            case 'practice': {
-                const tools = Array.isArray(block.content?.tools) ? block.content.tools.length : 0;
-                const exercises = Array.isArray(block.content?.exercises) ? block.content.exercises.length : 0;
-                const text = (block.content?.text || '').trim();
-                return tools > 0 || exercises > 0 || Boolean(text);
-            }
-            case 'text':
-            default: {
+            case 'text': {
+                // Texto estático: solo si tiene contenido
                 const text = (block.content?.text || '').trim();
                 return Boolean(text);
             }
+            case 'video': {
+                // Video: solo si tiene enlace
+                const yt = (lesson?.youtubeId || block.content?.url || '').trim();
+                return Boolean(yt);
+            }
+            // Bloques interactivos para el estudiante (sea-tab, notes, attachments, links, checkpoints, practice):
+            // Deben mostrarse siempre si están en la plantilla para que el estudiante interactúe o complete
+            default:
+                return true;
         }
     };
 
@@ -97,12 +63,14 @@ const WebLessonLayout = ({
             case 'blocks': return blocksComponent;
             case 'sea':
             case 'sea-tab': {
-                if (seaComponent) return seaComponent;
-                const tabCode = block.content?.code || block.content?.tab || lesson?.practiceTab;
-                if (tabCode) {
-                    return <SeaTabBlock content={{ tab: tabCode, title: block.title }} lesson={lesson} />;
+                const tabCode = block.content?.code || block.content?.tab || lesson?.practiceTab || '';
+                if (seaComponent) {
+                    return React.cloneElement(seaComponent, {
+                        content: { ...(seaComponent.props?.content || {}), tab: tabCode, code: tabCode, title: block.title },
+                        lesson: lesson
+                    });
                 }
-                return null;
+                return <SeaTabBlock content={{ tab: tabCode, title: block.title }} lesson={lesson} />;
             }
             case 'links': return linksComponent;
             case 'attachments': return attachmentsComponent;

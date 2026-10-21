@@ -146,6 +146,7 @@ export default function LessonPage({
                 userId={user?.id} 
                 initialData={workspaceData}
                 lessonConfig={lesson.workspace_config}
+                lesson={lesson}
             >
                 <div className="w-full h-screen bg-slate-950 flex flex-col overflow-hidden">
                     {/* --- WORKSPACE TOP BAR --- */}
@@ -231,7 +232,7 @@ export default function LessonPage({
                                 tabComponent={<AlphaTabPanel gpFile={lesson.gpFile} />}
                                 notesComponent={<WorkspaceNotesPanel lessonNotes={lesson.personal_notes} />}
                                 blocksComponent={<WorkspaceBlocksPanel blocks={blocks} />}
-                                seaComponent={lesson.practiceTab ? <SeaTabBlock content={{ tab: lesson.practiceTab, title: lesson.title }} lesson={lesson} /> : null}
+                                seaComponent={<SeaTabBlock content={{ tab: lesson?.practiceTab || '', title: 'Tablatura SEA' }} lesson={lesson} />}
                                 linksComponent={<div className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Recursos vinculados</div>}
                                 attachmentsComponent={<div className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Archivos de la lección</div>}
                                 practiceComponent={<div className="p-4 text-slate-400 font-black uppercase text-[10px] tracking-widest">Herramientas de estudio</div>}

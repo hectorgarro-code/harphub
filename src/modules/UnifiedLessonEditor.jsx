@@ -506,52 +506,23 @@ const UnifiedLessonEditor = ({
 
     const hasBlockContent = (block) => {
         if (!block) return false;
-        const hasBlockLinks = Array.isArray(block.links) && block.links.length > 0;
-        const hasBlockAttachments = Array.isArray(block.attachments) && block.attachments.length > 0;
-        if (hasBlockLinks || hasBlockAttachments) return true;
 
         switch (block.type) {
-            case 'video': {
-                const url = (block.content?.url || lesson.youtubeId || '').trim();
-                return Boolean(url);
-            }
             case 'gp-tab':
             case 'tab': {
                 const url = (block.content?.url || lesson.gpFile || '').trim();
                 return Boolean(url || selectedGpFile);
             }
-            case 'sea-tab':
-            case 'sea': {
-                const code = (block.content?.code || block.content?.tab || lesson.practiceTab || '').trim();
-                return Boolean(code);
-            }
-            case 'notes': {
-                const text = (block.content?.text || lesson.personal_notes || '').trim();
-                return Boolean(text);
-            }
-            case 'attachments': {
-                const files = Array.isArray(block.content?.files) ? block.content.files.length : 0;
-                return files > 0 || (selectedAttachments && selectedAttachments.length > 0);
-            }
-            case 'links': {
-                const items = Array.isArray(block.content?.items) ? block.content.items.length : 0;
-                return items > 0;
-            }
-            case 'checkpoints': {
-                const items = Array.isArray(block.content?.items) ? block.content.items : [];
-                return items.some(it => it && it.text && it.text.trim());
-            }
-            case 'practice': {
-                const tools = Array.isArray(block.content?.tools) ? block.content.tools.length : 0;
-                const exercises = Array.isArray(block.content?.exercises) ? block.content.exercises.length : 0;
-                const text = (block.content?.text || '').trim();
-                return tools > 0 || exercises > 0 || Boolean(text);
-            }
-            case 'text':
-            default: {
+            case 'text': {
                 const text = (block.content?.text || '').trim();
                 return Boolean(text);
             }
+            case 'video': {
+                const url = (block.content?.url || lesson.youtubeId || '').trim();
+                return Boolean(url);
+            }
+            default:
+                return true;
         }
     };
 

@@ -5,35 +5,52 @@ const WorkspaceContext = createContext();
 
 export const useWorkspace = () => useContext(WorkspaceContext);
 
-export const WorkspaceProvider = ({ children, lessonId, userId, initialData, lessonConfig }) => {
+const normalizeWorkspaceConfig = (lessonConfig, lesson) => {
+    let parsed = {};
+    try {
+        parsed = typeof lessonConfig === 'string' ? JSON.parse(lessonConfig) : (lessonConfig || {});
+    } catch (e) {
+        parsed = {};
+    }
+
+    if (!Array.isArray(parsed.webBlocks) || parsed.webBlocks.length === 0) {
+        parsed.layoutMode = 'vertical';
+        parsed.webBlocks = [
+            { id: 'video_1', type: 'video', title: 'Video & Teoría', description: '', links: [], attachments: [] },
+            { id: 'sea_1', type: 'sea-tab', title: 'Tablatura SEA', description: '', links: [], attachments: [], content: { code: lesson?.practiceTab || '' } },
+            { id: 'tab_1', type: 'tab', title: 'Partitura Interactiva', description: '', links: [], attachments: [] },
+            { id: 'notes_1', type: 'notes', title: 'Mis Notas de Estudio', description: '', links: [], attachments: [] }
+        ];
+    } else {
+        const hasSea = parsed.webBlocks.some(b => b.type === 'sea' || b.type === 'sea-tab');
+        if (!hasSea && (lesson?.practiceTab || lesson?.instrument === 'harmonica')) {
+            const videoIdx = parsed.webBlocks.findIndex(b => b.type === 'video');
+            const insertIdx = videoIdx !== -1 ? videoIdx + 1 : 0;
+            parsed.webBlocks.splice(insertIdx, 0, {
+                id: 'sea_tab_auto',
+                type: 'sea-tab',
+                title: 'Tablatura SEA',
+                description: '',
+                links: [],
+                attachments: [],
+                content: { code: lesson?.practiceTab || '' }
+            });
+        }
+    }
+    return parsed;
+};
+
+export const WorkspaceProvider = ({ children, lessonId, userId, initialData, lessonConfig, lesson }) => {
     const [workspaceId, setWorkspaceId] = useState(initialData?.id || null);
     
     // Configuración base de la lección (definida por el creador)
-    const [config, setConfig] = useState(() => {
-        try {
-            const parsed = typeof lessonConfig === 'string' ? JSON.parse(lessonConfig) : (lessonConfig || {});
-            
-            // Si no tiene webBlocks, migrar o crear defaults
-            if (!parsed.webBlocks) {
-                parsed.layoutMode = 'vertical';
-                parsed.webBlocks = [
-                    { id: 'video_1', type: 'video', title: 'Video & Teoría', description: '', links: [], attachments: [] },
-                    { id: 'tab_1', type: 'tab', title: 'Partitura Interactiva', description: '', links: [], attachments: [] },
-                    { id: 'notes_1', type: 'notes', title: 'Mis Notas de Estudio', description: '', links: [], attachments: [] }
-                ];
-            }
-            return parsed;
-        } catch (e) {
-            return {
-                layoutMode: 'vertical',
-                webBlocks: [
-                    { id: 'video_1', type: 'video', title: 'Video & Teoría', description: '', links: [], attachments: [] },
-                    { id: 'tab_1', type: 'tab', title: 'Partitura Interactiva', description: '', links: [], attachments: [] },
-                    { id: 'notes_1', type: 'notes', title: 'Mis Notas de Estudio', description: '', links: [], attachments: [] }
-                ]
-            };
+    const [config, setConfig] = useState(() => normalizeWorkspaceConfig(lessonConfig, lesson));
+
+    useEffect(() => {
+        if (lessonConfig || lesson) {
+            setConfig(normalizeWorkspaceConfig(lessonConfig, lesson));
         }
-    });
+    }, [lessonConfig, lesson]);
 
     const [layoutConfig, setLayoutConfig] = useState(initialData?.layout_config || {
         panels: [
