@@ -1,4 +1,4 @@
-const CACHE_NAME = 'harphub-v1';
+const CACHE_NAME = 'harphub-v2';
 
 self.addEventListener('install', (event) => {
     self.skipWaiting();
